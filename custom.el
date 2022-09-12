@@ -1,5 +1,4 @@
 (custom-set-variables
-
  '(mode-line-format
    '("%I %e" mode-line-front-space mode-line-mule-info mode-line-client mode-line-modified mode-line-remote mode-line-frame-identification mode-line-buffer-identification "   " mode-line-position
      ((:eval

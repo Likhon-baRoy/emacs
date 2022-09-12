@@ -12,9 +12,6 @@
                              (float-time
                               (time-subtract after-init-time before-init-time)))
                      gcs-done)))
-
-(add-to-list 'custom-theme-load-path "~/.emacs.d/themes/")
-
 ;;________________________________________________________________
 ;;    Auto Completion
 ;;________________________________________________________________
@@ -32,22 +29,16 @@
 ;; bellow cmnd will restores emacs exit to nearly instantaneous.
 ;; (setq save-place-forget-unreadable-files nil)
 
-;; Revert buffers when the underlying file has changed
-(global-auto-revert-mode 1)
-
-;; Revert Dired and other buffers
-(setq global-auto-revert-non-file-buffers t)
-
+(global-auto-revert-mode 1)							; Revert buffers when the underlying file has changed
+(setq global-auto-revert-non-file-buffers t)		; Revert Dired and other buffers
 ;;________________________________________________________________
 ;;    Separte Customization from init file
 ;;________________________________________________________________
-;; It will keep the user customization created with
 ;; M-x customize-theme, M-x customize-group in a separate file ~/.emacs.d/custom.el.
 
 ;; Move customization variables to a separate file and load it
 (setq custom-file (locate-user-emacs-file "custom-vars.el"))
 (load custom-file 'noerror 'nomessage)
-
 ;;________________________________________________________________
 ;;    Modeline
 ;;________________________________________________________________
@@ -56,51 +47,38 @@
 (setq display-time-format "%l:%M%P (%a) %e %b ♪" ;; %D for date format
       display-time-default-load-average nil)
 
-;;  (setq mode-line-compact t)
 (setq line-move-visual t)
-;;(setq indent-tabs-mode t)
+;; (setq mode-line-compact t)
 
 ;; Permanent display of line and column numbers is handy.
 (setq-default line-number-mode 't)
 (setq-default column-number-mode 't)
 (display-time-mode)
-
+(display-battery-mode)
 (global-visual-line-mode 1)
-
 ;;________________________________________________________________
 ;;    Balancing Parentheses
 ;;________________________________________________________________
-
 (setq show-paren-delay 0)           ; how long to wait?
 (show-paren-mode 1)                 ; turn paren-mode on
 (setq show-paren-style 'mixed)      ; alternatives are 'expression' and 'parenthesis'
 
-;; auto close bracket insertion. New in emacs 24
-(electric-pair-mode 1)
+(electric-pair-mode 1)				; auto close bracket insertion
 ;; make electric-pair-mode work on more brackets
 (setq electric-pair-pairs
       '(
         (?\" . ?\")
         (?\< . ?\>)
         (?\{ . ?\})))
-
 ;;________________________________________________________________
 ;;    Editing Related
 ;;________________________________________________________________
-
-;; make typing delete/overwrites selected text
-(delete-selection-mode 1)
-
-;; make return key also do indent, for current buffer only
-(electric-indent-local-mode 1)
-
-;; make return key also do indent, globally ;; indentation, end of line
-(electric-indent-mode 1)
+(delete-selection-mode 1)			; make typing delete/overwrites selected text
+(electric-indent-local-mode 1)		; make return key also do indent, for current buffer only
+(electric-indent-mode 1)			; make return key also do indent, globally ;; indentation, end of line
 (setq-default electric-indent-inhibit t)
 
-;; Backspacing over a tab, just delete the tab:
-(setq-default c-backspace-function 'backward-delete-char)
-
+(setq-default c-backspace-function 'backward-delete-char)		; Backspacing over a tab, just delete the tab:
 ;;________________________________________________________________
 ;;    Global Key Bindings
 ;;________________________________________________________________
@@ -137,18 +115,6 @@
 ;; (global-set-key "\C-z" 'call-last-kbd-macro)
 ;; (define-key esc-map "&" 'query-replace-regexp)
 
-;; You can also define your own function. e.g:
-
-;; (defun duplicate-line()
-;;   (interactive)
-;;   (move-beginning-of-line 1)
-;;   (kill-line)
-;;   (yank)
-;;   (open-line 1)
-;;   (next-line 1)
-;;   (yank) )
-;; (global-set-key (kbd "C-d") 'duplicate-line) 
-
 ;; (defun my-custom-settings-fn ()
 ;;   (setq tab-width 4)
 ;;   (setq indent-tabs-mode t)
@@ -159,11 +125,11 @@
   "my customizations for all of c-mode and related modes"
   (setq c-basic-offset 4)
   (setq c-basic-indent 4))
-
 (add-hook 'c-mode-common-hook 'my-c-mode-common-hook)
 
 ;; Space / Tabs - Indentation
 
+;;(setq indent-tabs-mode t)
 ;;(setq tab-width 4 indent-tabs-mode nil)			; set indentation with spaces instead of tabs with 4 spaces
 ;;(setq-default tab-width 4)						; set default tab char's display width to 4 spaces
 ;;(setq-default indent-tabs-mode nil)

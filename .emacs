@@ -29,22 +29,19 @@
 ;; bellow cmnd will restores emacs exit to nearly instantaneous.
 ;; (setq save-place-forget-unreadable-files nil)
 
-(global-auto-revert-mode 1)							; Revert buffers when the underlying file has changed
+(global-auto-revert-mode 1)				; Revert buffers when the underlying file has changed
 (setq global-auto-revert-non-file-buffers t)		; Revert Dired and other buffers
 ;;________________________________________________________________
 ;;    Separte Customization from init file
 ;;________________________________________________________________
-;; M-x customize-theme, M-x customize-group in a separate file ~/.emacs.d/custom.el.
-
-;; Move customization variables to a separate file and load it
-(setq custom-file (locate-user-emacs-file "custom-vars.el"))
+(setq custom-file (locate-user-emacs-file "custom.el")) ; Move customization variables to a separate file ~/.emacs.d/custom.el and load it
 (load custom-file 'noerror 'nomessage)
 ;;________________________________________________________________
 ;;    Modeline
 ;;________________________________________________________________
 
 ;; Basic Customization
-(setq display-time-format "%l:%M%P (%a) %e %b ♪" ;; %D for date format
+(setq display-time-format "%l:%M%P (%a) %e %b ♪" 	; %D for date format
       display-time-default-load-average nil)
 
 (setq line-move-visual t)
@@ -62,8 +59,7 @@
 (setq show-paren-delay 0)           ; how long to wait?
 (show-paren-mode 1)                 ; turn paren-mode on
 (setq show-paren-style 'mixed)      ; alternatives are 'expression' and 'parenthesis'
-
-(electric-pair-mode 1)				; auto close bracket insertion
+(electric-pair-mode 1)		    ; auto close bracket insertion
 ;; make electric-pair-mode work on more brackets
 (setq electric-pair-pairs
       '(
@@ -74,11 +70,10 @@
 ;;    Editing Related
 ;;________________________________________________________________
 (delete-selection-mode 1)			; make typing delete/overwrites selected text
-(electric-indent-local-mode 1)		; make return key also do indent, for current buffer only
+(electric-indent-local-mode 1)			; make return key also do indent, for current buffer only
 (electric-indent-mode 1)			; make return key also do indent, globally ;; indentation, end of line
 (setq-default electric-indent-inhibit t)
-
-(setq-default c-backspace-function 'backward-delete-char)		; Backspacing over a tab, just delete the tab:
+(setq-default c-backspace-function 'backward-delete-char)	; Backspacing over a tab, just delete the tab:
 ;;________________________________________________________________
 ;;    Global Key Bindings
 ;;________________________________________________________________
@@ -87,59 +82,26 @@
 ;; (global-set-key (kbd "C-c g") 'search-forward)
 
 (global-set-key (kbd "M-#") 'query-replace-regexp)
-
-;; To make sure that emacs is actually using tabs instead of spaces:
-(global-set-key (kbd "TAB") 'self-insert-command)
-
-;; Duplicate a whole line
-(global-set-key "\C-c\C-d" "\C-a\C- \C-n\M-w\C-y")
+(global-set-key (kbd "TAB") 'self-insert-command)	; To make sure that emacs is actually using TABS instead of SPACES
+(global-set-key "\C-c\C-d" "\C-a\C- \C-n\M-w\C-y")	; Duplicate a whole line
+(define-key esc-map "&" 'query-replace-regexp)		; redefined ESC-&
+;; (global-set-key "\C-z" 'call-last-kbd-macro)		; call-last-kbd-macro frequently used key on a double key sequence (I think original is ^Xe)
 
 ;; ###----Setting Key Bindings with use-package----###
 
 ;; a minor mode that records your window configurations
 ;; and lets you undo and redo changes made to it.
-
 (use-package winner
   :config
   (winner-mode 1)
   :bind (("M-[" . winner-undo)
          ("M-]" . winner-redo)))
 
+(setq tab-width 4 indent-tabs-mode nil)			; set indentation with spaces instead of tabs with 4 spaces
+(setq backward-delete-char-untabify-method 'all)	; makes backspace remove all consecutive whitespace characters, even newlines
+;; (setq backward-delete-char-untabify-method 'hungry)
 
-(add-hook 'text-mode-hook (lambda ( ) (refill-mode 1)))
-(global-set-key (kbd "C-<f1>")
-                (lambda () (interactive)
-                  (load-theme 'zenburn t)))
-
-;; call-last-kbd-macro frequently used key on a double key sequence (I think original is ^Xe). I've also redefined ESC-&.
-;; (global-set-key "\C-z" 'call-last-kbd-macro)
-;; (define-key esc-map "&" 'query-replace-regexp)
-
-;; (defun my-custom-settings-fn ()
-;;   (setq tab-width 4)
-;;   (setq indent-tabs-mode t)
-;;   (setq tab-stop-list (number-sequence 4 200 4)))
-;; (add-hook 'text-mode-hook 'my-custom-settings-fn)
-
-(defun my-c-mode-common-hook ()
-  "my customizations for all of c-mode and related modes"
-  (setq c-basic-offset 4)
-  (setq c-basic-indent 4))
-(add-hook 'c-mode-common-hook 'my-c-mode-common-hook)
-
-;; Space / Tabs - Indentation
-
-;;(setq indent-tabs-mode t)
-;;(setq tab-width 4 indent-tabs-mode nil)			; set indentation with spaces instead of tabs with 4 spaces
-;;(setq-default tab-width 4)						; set default tab char's display width to 4 spaces
-;;(setq-default indent-tabs-mode nil)
-;;(setq-default tab-always-indent nil)			; force emacs to always use spaces instead of tab characters
-(setq-default tab-always-indent 'complete)		; make tab key do indent first then completion
-(setq sentence-end-double-space nil)
-;; (setq-default tab-always-indent t)			; make tab key always call a indent command
-
-;;find-file-at-point, smarter C-x C-f when point on path or URL
-(ffap-bindings)
+(ffap-bindings)		; find-file-at-point, smarter C-x C-f when point on path or URL
 
 ;; Unique buffer name
 (require 'uniquify)
@@ -161,7 +123,7 @@
 ;;________________________________________________________________
 ;;    Display Bars
 ;;________________________________________________________________
-
+(setq inhibit-startup-buffer-menu t)
 (setq inhibit-startup-screen t)			; Turn-off Startup en
 (setq initial-scratch-message nil)		; Don't insert instructions in the *scratch* buffer
 (setq use-dialog-box nil)				; Don't pop up UI dialogs when prompting
@@ -189,7 +151,6 @@
 ;;________________________________________________________________
 ;;    Fonts Setting
 ;;________________________________________________________________
-
 (global-font-lock-mode 1)				; Use font-lock everywhere.
 (setq font-lock-maximum-decoration t)	; We have CPU to spare; highlight all syntax categories.
 
@@ -212,7 +173,6 @@
 ;;________________________________________________________________
 ;;    Backup Files
 ;;________________________________________________________________
-
 (defvar --backup-directory (concat user-emacs-directory "backups"))
 (if (not (file-exists-p --backup-directory))
         (make-directory --backup-directory t))
@@ -240,7 +200,6 @@
                   week))
       (message "%s" file)
       (delete-file file))))
-
 ;;________________________________________________________________
 ;; 	Identity Who I Am ?   
 ;;________________________________________________________________
@@ -309,11 +268,9 @@
 
 (setq line-number-display-limit nil)
 (setq line-number-display-limit-width 2000000)
-
 ;;________________________________________________________________
 ;;    Icomplete Mode Setup
 ;;________________________________________________________________
-
 ;; WARNING: copy/rename file in DIRED OVERWRITES
 
 ;; with fido mode on, when copy or move a file in dired,

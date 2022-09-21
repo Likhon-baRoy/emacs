@@ -1,3 +1,6 @@
+(setq initial-frame-alist '((top . 10) (left . 30)
+                            (width . 90) (height . 50)))
+(setq default-frame-alist '((width . 80) (height . 45)))
 ;; ###----startup performance----###
 
 ;; make startup faster by reducing the frequency of garbage collection and then use a hook to measure Emacs startup time. 
@@ -59,7 +62,7 @@
 (setq show-paren-delay 0)           ; how long to wait?
 (show-paren-mode 1)                 ; turn paren-mode on
 (setq show-paren-style 'mixed)      ; alternatives are 'expression' and 'parenthesis'
-(electric-pair-mode 1)		    ; auto close bracket insertion
+(electric-pair-mode 1)			    ; auto close bracket insertion
 ;; make electric-pair-mode work on more brackets
 (setq electric-pair-pairs
       '(
@@ -70,21 +73,68 @@
 ;;    Editing Related
 ;;________________________________________________________________
 (delete-selection-mode 1)			; make typing delete/overwrites selected text
-(electric-indent-local-mode 1)			; make return key also do indent, for current buffer only
-(electric-indent-mode 1)			; make return key also do indent, globally ;; indentation, end of line
-(setq-default electric-indent-inhibit t)
-(setq-default c-backspace-function 'backward-delete-char)	; Backspacing over a tab, just delete the tab:
+(setq kill-whole-line t) 			; kills the entire line plus the newline whenever you invoke kill-line (i.e. via C-k).
 ;;________________________________________________________________
 ;;    Global Key Bindings
 ;;________________________________________________________________
-
-; Making global key bindings in Emacs Lisp (example):
-;; (global-set-key (kbd "C-c g") 'search-forward)
-
+(global-set-key (kbd "C-x g") 'magit-status)
+(add-hook 'emacs-lisp-mode-hook
+		  (lambda ()
+			(define-key emacs-lisp-mode-map (kbd "C-c C-b") 'eval-buffer)))
+;; swap windows
+;; (global-set-key (kbd "C-c s") 'swap-windows)
 (global-set-key (kbd "M-#") 'query-replace-regexp)
 (global-set-key (kbd "TAB") 'self-insert-command)	; To make sure that emacs is actually using TABS instead of SPACES
-(global-set-key "\C-c\C-d" "\C-a\C- \C-n\M-w\C-y")	; Duplicate a whole line
+(global-set-key "\C-c\C-d" "\C-a\C- \C-n\M-w\C-y")	; Duplicate a whole line 
+(global-set-key "\C-c\C-r" 'rename-file)
+(global-set-key "\C-cD" 'Delete-current-file)
+(global-set-key "\C-z" 'shell)
+(global-set-key "\C-w" 'backward-kill-word)
+(global-set-key "\C-x\C-k" 'kill-region)
+(global-set-key "\C-c\C-k" 'kill-region)
+(global-set-key "\M-o"  'other-window)
+(global-set-key "\M-n"  'next-buffer)
+(global-set-key "\M-p"  'previous-buffer)
+(global-set-key (kbd "C-.") #'other-window)
+(global-set-key (kbd "C-,") #'prev-window)
+(defun prev-window ()
+  (interactive)
+  (other-window -1))
+
+;; spell check for Bangla text
+(global-set-key (kbd "C-c B")
+                (lambda()(interactive)
+                  (ispell-change-dictionary "bn_BD")
+                  (flyspell-buffer)))
+;; Toggle show-trailing-whitespace.
+(global-set-key (kbd "C-c M-w") (function (lambda () (interactive) (setq show-trailing-whitespace (not show-trailing-whitespace)))))
+;; I use C-h for backspace in Emacs and move `help-command' elsewhere:
+(global-set-key "\C-h" 'backward-delete-char-untabify)
+(define-key isearch-mode-map "\C-h" 'isearch-delete-char)
+(global-set-key [(hyper h)] 'help-command)
+;comment/uncomment region
+(global-set-key "\C-c\C-c" 'comment-or-uncomment-region)
+;;this lets us have long lines go off the side of the screen instead of hosing up the ascii art
+(global-set-key "\C-t" 'toggle-truncate-lines)
+
+(windmove-default-keybindings 'meta)
+(global-set-key (kbd "C-c h")  'windmove-left)
+(global-set-key (kbd "C-c l") 'windmove-right)
+(global-set-key (kbd "C-c k")    'windmove-up)
+(global-set-key (kbd "C-c j")  'windmove-down)
+
+;; (global-set-key (kbd "M-t") nil) ;; Remove the old keybinding
+;; (global-set-key (kbd "M-t c") 'transpose-chars)
+;; (global-set-key (kbd "M-t w") 'transpose-words)
+;; (global-set-key (kbd "M-t t") 'transpose-words)
+;; (global-set-key (kbd "M-t M-t") 'transpose-words)
+;; (global-set-key (kbd "M-t l") 'transpose-lines)
+;; (global-set-key (kbd "M-t e") 'transpose-sexps)
+;; (global-set-key (kbd "M-t s") 'transpose-sentences)
+;; (global-set-key (kbd "M-t p") 'transpose-paragraphs)
+
 (define-key esc-map "&" 'query-replace-regexp)		; redefined ESC-&
+;; (global-set-key (kbd "C-c g") 'search-forward)
 ;; (global-set-key "\C-z" 'call-last-kbd-macro)		; call-last-kbd-macro frequently used key on a double key sequence (I think original is ^Xe)
 
 ;; ###----Setting Key Bindings with use-package----###
@@ -97,7 +147,12 @@
   :bind (("M-[" . winner-undo)
          ("M-]" . winner-redo)))
 
-(setq tab-width 4 indent-tabs-mode nil)			; set indentation with spaces instead of tabs with 4 spaces
+; set the default tab width as 4
+(custom-set-variables
+    '(tab-width 4))
+(setq-default indent-line-function 'insert-tab)
+
+(setq-default tab-width 4 indent-tabs-mode t)			; set indentation with spaces instead of tabs with 4 spaces
 (setq backward-delete-char-untabify-method 'all)	; makes backspace remove all consecutive whitespace characters, even newlines
 ;; (setq backward-delete-char-untabify-method 'hungry)
 
@@ -123,15 +178,18 @@
 ;;________________________________________________________________
 ;;    Display Bars
 ;;________________________________________________________________
+(setq scroll-conservatively 10)
+(setq scroll-margin 1)
+(setq scroll-preserve-screen-position t)
+(when window-system (global-prettify-symbols-mode t))
 (setq inhibit-startup-buffer-menu t)
 (setq inhibit-startup-screen t)			; Turn-off Startup en
 (setq initial-scratch-message nil)		; Don't insert instructions in the *scratch* buffer
-(setq use-dialog-box nil)				; Don't pop up UI dialogs when prompting
+(setq use-dialog-box nil)			; Don't pop up UI dialogs when prompting
 (defalias 'yes-or-no-p 'y-or-n-p)		; Ask y or n instead of yes or no
-;; (fset 'yes-or-no-p 'y-or-n-p)		; Change all prompts to y or n
 (setq-default visible-bell t)			; Flash the screen on error, don't beep
-;; (setq ring-bell-function #'ignore)	; Turn-off Alarm Bell
 (setq-default view-read-only t)		 	; Toggle ON or OFF with M-x view-mode (or use e to exit view-mode).
+;; (setq ring-bell-function #'ignore)		; Turn-off Alarm Bell
 
 ;; Disable some default feature
 (tool-bar-mode -1)
@@ -151,8 +209,8 @@
 ;;________________________________________________________________
 ;;    Fonts Setting
 ;;________________________________________________________________
-(global-font-lock-mode 1)				; Use font-lock everywhere.
-(setq font-lock-maximum-decoration t)	; We have CPU to spare; highlight all syntax categories.
+(global-font-lock-mode 1)			; Use font-lock everywhere.
+(setq font-lock-maximum-decoration t)		; We have CPU to spare; highlight all syntax categories.
 
 (set-frame-font "Comic Mono-10.5" nil t)
 ;; (set-frame-font "Monaco-9" nil t)
@@ -163,13 +221,11 @@
 ;;________________________________________________________________
 ;;    Cursor Mode
 ;;________________________________________________________________
-
-;; Set cursor and mouse colours:
 (set-cursor-color "Orchid3")
 (set-mouse-color "white")
-(setq x-stretch-cursor t)	; make cursor the width of the character it is under i.e. full width of a TAB
+(setq x-stretch-cursor t)		; make cursor the width of the character it is under i.e. full width of a TAB
 (setq-default cursor-type 'box)
-(blink-cursor-mode -1)		; Turn-off Cursor Blink (1 to Enable & 0 to Stop)
+(blink-cursor-mode -1)			; Turn-off Cursor Blink (1 to Enable & 0 to Stop)
 ;;________________________________________________________________
 ;;    Backup Files
 ;;________________________________________________________________
@@ -188,7 +244,7 @@
       auto-save-timeout 30              ; number of seconds idle time before auto-save (default: 30)
       auto-save-interval 200            ; number of keystrokes between auto-saves (default: 300)
       )
-(setq delete-auto-save-files t)			; deletes buffer's auto save file when it is saved or killed with no changes in it.
+(setq delete-auto-save-files t)		; deletes buffer's auto save file when it is saved or killed with no changes in it.
 
 ;; Automatically purge backup files not accessed in a week:
 (message "Deleting old backup files...")
@@ -213,8 +269,8 @@
 ;;________________________________________________________________
 ;;    Highlight Current LINE
 ;;________________________________________________________________
-(global-hl-line-mode 1)
-(set-face-background 'highlight "#3e4446")	; you canalso try: "#3e4446" or "#gray6" or etc.
+(when window-system (global-hl-line-mode 1))
+(set-face-background 'highlight "#3e4446")	; you canalso try: "#3e4446" or "#gray6" etc.
 (set-face-foreground 'highlight nil)
 ;; (set-face-underline-p 'highlight "#ff0000")
  
@@ -254,10 +310,30 @@
 (put 'scroll-left 'disabled nil)
 (put 'narrow-to-region 'disabled nil)
 
+;; (require 'package)
+;; (setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
+;;                          ("melpa" . "https://melpa.org/packages/")))
+
 (require 'package)
-(setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
-                         ("melpa" . "https://melpa.org/packages/")))
-	
+(setq package-enable-at-startup nil)
+(add-to-list 'package-archives
+			 '("melpa" . "https://melpa.org/packages/"))
+(package-initialize)
+
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(use-package which-key
+  :ensure t
+  :init
+  (which-key-mode))
+
+(use-package beacon
+  :ensure t
+  :init
+  (beacon-mode 1))
+
 ;; This snippet loads all *.el files in a directory.
 (defun load-directory (dir)
   (let ((load-it (lambda (f)

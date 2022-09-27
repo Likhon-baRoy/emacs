@@ -36,6 +36,8 @@
 '(rainbow-delimiters-depth-8-face ((t (:foreground "tomato" :height 0.8))))
 '(rainbow-delimiters-unmatched-face ((t (:background "cyan" :height 0.7))))
 
+;; http://xahlee.info/emacs/misc/emacs_rainbow-delimiters-mode.html
+ 
 ;; '(rainbow-delimiters-depth-1-face ((t (:foreground "red" :height 2.0))))
 ;; '(rainbow-delimiters-depth-2-face ((t (:foreground "orange" :height 1.8))))
 ;; '(rainbow-delimiters-depth-3-face ((t (:foreground "yellow" :height 1.6))))

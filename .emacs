@@ -1,6 +1,3 @@
-(setq initial-frame-alist '((top . 10) (left . 30)
-                            (width . 90) (height . 50)))
-(setq default-frame-alist '((width . 80) (height . 45)))
 ;; ###----startup performance----###
 
 ;; make startup faster by reducing the frequency of garbage collection and then use a hook to measure Emacs startup time. 
@@ -80,7 +77,13 @@
 (global-set-key (kbd "C-x g") 'magit-status)
 (add-hook 'emacs-lisp-mode-hook
 		  (lambda ()
-			(define-key emacs-lisp-mode-map (kbd "C-c C-b") 'eval-buffer)))
+			(define-key emacs-lisp-mode-map (kbd "C-c C-b")
+			  (lambda ()
+				"Save and evaluate-buffer."
+				(interactive)
+				(save-buffer)
+				(eval-buffer)))))
+
 ;; swap windows
 ;; (global-set-key (kbd "C-c s") 'swap-windows)
 (global-set-key (kbd "M-#") 'query-replace-regexp)
@@ -123,6 +126,11 @@
 (global-set-key (kbd "C-c k")    'windmove-up)
 (global-set-key (kbd "C-c j")  'windmove-down)
 
+(global-set-key (kbd "C-c C-h")  'windswap-left)
+(global-set-key (kbd "C-c C-l") 'windswap-right)
+(global-set-key (kbd "C-c C-k")    'windswap-up)
+(global-set-key (kbd "C-c C-j")  'windswap-down)
+
 ;; (global-set-key (kbd "M-t") nil) ;; Remove the old keybinding
 ;; (global-set-key (kbd "M-t c") 'transpose-chars)
 ;; (global-set-key (kbd "M-t w") 'transpose-words)
@@ -152,9 +160,9 @@
     '(tab-width 4))
 (setq-default indent-line-function 'insert-tab)
 
-(setq-default tab-width 4 indent-tabs-mode t)			; set indentation with spaces instead of tabs with 4 spaces
-(setq backward-delete-char-untabify-method 'all)	; makes backspace remove all consecutive whitespace characters, even newlines
-;; (setq backward-delete-char-untabify-method 'hungry)
+(setq-default tab-width 4 indent-tabs-mode nil)			; set indentation with spaces instead of tabs with 4 spaces
+(setq backward-delete-char-untabify-method 'hungry)
+;; (setq backward-delete-char-untabify-method 'all)	; makes backspace remove all consecutive whitespace characters, even newlines
 
 (ffap-bindings)		; find-file-at-point, smarter C-x C-f when point on path or URL
 
@@ -183,20 +191,20 @@
 (setq scroll-preserve-screen-position t)
 (when window-system (global-prettify-symbols-mode t))
 (setq inhibit-startup-buffer-menu t)
-(setq inhibit-startup-screen t)			; Turn-off Startup en
+(setq inhibit-startup-screen t)		; Turn-off Startup en
 (setq initial-scratch-message nil)		; Don't insert instructions in the *scratch* buffer
-(setq use-dialog-box nil)			; Don't pop up UI dialogs when prompting
+(setq use-dialog-box nil)				; Don't pop up UI dialogs when prompting
 (defalias 'yes-or-no-p 'y-or-n-p)		; Ask y or n instead of yes or no
 (setq-default visible-bell t)			; Flash the screen on error, don't beep
-(setq-default view-read-only t)		 	; Toggle ON or OFF with M-x view-mode (or use e to exit view-mode).
-;; (setq ring-bell-function #'ignore)		; Turn-off Alarm Bell
+(setq-default view-read-only t)		; Toggle ON or OFF with M-x view-mode (or use e to exit view-mode).
+;; (setq ring-bell-function #'ignore)	; Turn-off Alarm Bell
 
 ;; Disable some default feature
 (tool-bar-mode -1)
 (menu-bar-mode -1)
 (scroll-bar-mode -1)
 
-(load-theme 'tango-dark t)
+;; (load-theme 'tango-dark t)
 ;; (set-foreground-color "ivory")
 ;; (set-background-color "darkblue")
 (set-face-attribute 'region nil :background "#666" :foreground "#ffffff")	; Change the HIGHLIGHT COLOR for SELECTED TEXT
@@ -212,7 +220,12 @@
 (global-font-lock-mode 1)			; Use font-lock everywhere.
 (setq font-lock-maximum-decoration t)		; We have CPU to spare; highlight all syntax categories.
 
+(setq default-input-method "bengali-probhat")
+(set-fontset-font "fontset-default" 'bengali (font-spec :family "Kalpurush" :size 18))
+
 (set-frame-font "Comic Mono-10.5" nil t)
+;; (set-frame-font "Noto Sans Bengali-10.5" nil t)
+;; (set-frame-font "Noto Serif Bengali-11" nil t)
 ;; (set-frame-font "Monaco-9" nil t)
 ;; (set-frame-font "Fantasque Sans Mono-10.5" nil t)
 ;; (set-frame-font "Source Code Pro-10" nil t)
@@ -221,7 +234,6 @@
 ;;________________________________________________________________
 ;;    Cursor Mode
 ;;________________________________________________________________
-(set-cursor-color "Orchid3")
 (set-mouse-color "white")
 (setq x-stretch-cursor t)		; make cursor the width of the character it is under i.e. full width of a TAB
 (setq-default cursor-type 'box)
@@ -257,7 +269,7 @@
       (message "%s" file)
       (delete-file file))))
 ;;________________________________________________________________
-;; 	Identity Who I Am ?   
+;;		Identity Who I Am ?
 ;;________________________________________________________________
 
 ;; Do not publish my email on Usenet
@@ -267,15 +279,15 @@
       user-mail-address    "likhonhere007@gmail.com"
       system-name          "Art.Likhon")
 ;;________________________________________________________________
-;;    Highlight Current LINE
+;;		Highlight Current LINE
 ;;________________________________________________________________
 (when window-system (global-hl-line-mode 1))
 (set-face-background 'highlight "#3e4446")	; you canalso try: "#3e4446" or "#gray6" etc.
 (set-face-foreground 'highlight nil)
 ;; (set-face-underline-p 'highlight "#ff0000")
- 
-;; (vline-global-mode 1)
-;; (set-face-background 'vline "#ff0000")	; you canalso try: "#3e4446" or "#gray6" or etc.
+
+;; (when window-system (vline-global-mode 1))
+;; (set-face-background 'vline "#3e4446")	; you canalso try: "#ff0000" or "#gray6" or etc.
 ;; (set-face-foreground 'vline nil)
 ;; (setq vline-style 'mixed)
 
@@ -304,21 +316,25 @@
 ;;don't highlight the end of long lines
 (setq whitespace-line-column 99999)
 
-(setq hi-lock-file-patterns-policy #'(lambda (dummy) t)) 
+(setq hi-lock-file-patterns-policy #'(lambda (dummy) t))
 
 (put 'dired-find-alternate-file 'disabled nil)
 (put 'scroll-left 'disabled nil)
 (put 'narrow-to-region 'disabled nil)
 
-;; (require 'package)
-;; (setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
-;;                          ("melpa" . "https://melpa.org/packages/")))
-
 (require 'package)
 (setq package-enable-at-startup nil)
-(add-to-list 'package-archives
-			 '("melpa" . "https://melpa.org/packages/"))
-(package-initialize)
+(setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
+                         ("melpa" . "https://melpa.org/packages/")
+                         ("org" . "http://orgmode.org/elpa/")))
+;;  (package-initialize)
+
+;; ;; (add-to-list 'package-archives
+;; ;; 			 '(("melpa" . "https://melpa.org/packages/")
+;; ;;                ("gnu" . "http://elpa.gnu.org/packages/")))
+
+;; (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+
 
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
@@ -333,6 +349,19 @@
   :ensure t
   :init
   (beacon-mode 1))
+
+(use-package rainbow-delimiters
+  :ensure t
+  :config
+  (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
+
+(use-package doom-themes)
+(load-theme 'doom-gruvbox t)
+
+(use-package doom-modeline
+ :hook
+ (after-init . doom-modeline-mode))
+(set-cursor-color "Orchid3")
 
 ;; This snippet loads all *.el files in a directory.
 (defun load-directory (dir)

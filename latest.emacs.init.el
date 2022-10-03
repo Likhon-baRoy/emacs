@@ -111,22 +111,6 @@
 ;; (global-auto-complete-mode t)
 ;; (setq ac-modes '(sh-mode lisp-mode c-mode c++-mode sql-mode html-mode)) ; you can specified only for some certain mode
 
-(global-company-mode)
-(add-hook 'after-init-hook 'global-company-mode)
-(setq company-tooltip-align-annotations t)
-(setq company-tooltip-flip-when-above t)
-;; (global-set-key (kbd "<tab>") #'company-indent-or-complete-common)
-(global-set-key (kbd "M-TAB") #'company-complete)
-(with-eval-after-load 'company
-  (define-key company-active-map (kbd "M-/") #'company-complete)
-  (define-key company-active-map (kbd "M-.") #'company-show-location)
-  (define-key company-active-map (kbd "RET") nil)
-  (define-key company-active-map
-              (kbd "<backtab>")
-              (lambda ()
-                (interactive)
-                (company-complete-common-or-cycle -1))))
-
 (setq powerline-default-separator nil)
 
 (setq ibuffer-saved-filter-groups
@@ -204,16 +188,23 @@
 				(save-buffer)
 				(eval-buffer)))))
 
-;; (global-set-key (kbd "C-c g") 'search-forward)
-;; (global-set-key "\C-z" 'call-last-kbd-macro)		; call-last-kbd-macro frequently used key on a double key sequence (I think original is ^Xe)
-
 (define-key esc-map "&" 'query-replace-regexp)		; redefined ESC-&
 (global-set-key (kbd "M-#") 'query-replace-regexp)
-(global-set-key (kbd "TAB") 'self-insert-command)	; To make sure that emacs is actually using TABS instead of SPACES
+(global-set-key (kbd "M-\"") 'insert-pair)			; Wrap text in quotes
+;(global-set-key (kbd "TAB") 'self-insert-command)	; To make sure that emacs is actually using TABS instead of SPACES
+
+;; I use C-h for backspace in Emacs and move `help-command' elsewhere:
+(global-set-key "\C-h" 'backward-delete-char-untabify)
+;(define-key isearch-mode-map "\C-h" 'isearch-delete-char)
+(global-set-key (kbd "C-S-H") 'kill-whole-line)
+(global-set-key (kbd "<f12>") 'help-command)
+(global-set-key "\C-c\C-c" 'comment-or-uncomment-region)
+(global-set-key "\C-t" 'toggle-truncate-lines) ; this lets us have long lines go off the side of the screen instead of hosing up the ascii art
 (global-set-key "\C-c\C-d" "\C-a\C- \C-n\M-w\C-y")	; Duplicate a whole line
-(global-set-key (kbd "C-c R") 'rename-file)
+(global-set-key (kbd "C-S-R") 'rename-file)
 (global-set-key "\C-cD" 'Delete-current-file)
 (global-set-key "\C-z" 'shell)
+;; (global-set-key "\C-z" 'call-last-kbd-macro)		; call-last-kbd-macro frequently used key on a double key sequence (I think original is ^Xe)
 (global-set-key "\C-w" 'backward-kill-word)
 (global-set-key "\C-x\C-k" 'kill-region)
 (global-set-key "\C-c\C-k" 'kill-region)
@@ -233,26 +224,17 @@
                   (flyspell-buffer)))
 ;; Toggle show-trailing-whitespace.
 (global-set-key (kbd "C-c M-w") (function (lambda () (interactive) (setq show-trailing-whitespace (not show-trailing-whitespace)))))
-;; I use C-h for backspace in Emacs and move `help-command' elsewhere:
-(global-set-key "\C-h" 'backward-delete-char-untabify)
-(define-key isearch-mode-map "\C-h" 'isearch-delete-char)
-(global-set-key (kbd "<f12>") 'help-command)
 
-;comment/uncomment region
-(global-set-key "\C-c\C-c" 'comment-or-uncomment-region)
-;;this lets us have long lines go off the side of the screen instead of hosing up the ascii art
-;(global-set-key "\C-t" 'toggle-truncate-lines)
+(windmove-default-keybindings)
+(global-set-key (kbd "s-<left>")    'windmove-left)
+(global-set-key (kbd "s-<right>")   'windmove-right)
+(global-set-key (kbd "s-<down>")    'windmove-down)
+(global-set-key (kbd "s-<up>")      'windmove-up)
 
-(windmove-default-keybindings 'meta)
-(global-set-key (kbd "C-c h")  'windmove-left)
-(global-set-key (kbd "C-c l") 'windmove-right)
-(global-set-key (kbd "C-c K")    'windmove-up)
-(global-set-key (kbd "C-c J")  'windmove-down)
-
-(global-set-key (kbd "C-c C-h")  'windswap-left)
-(global-set-key (kbd "C-c C-l") 'windswap-right)
-(global-set-key (kbd "C-c C-k")    'windswap-up)
-(global-set-key (kbd "C-c C-j")  'windswap-down)
+(global-set-key (kbd "C-c <left>")    'windswap-left)
+(global-set-key (kbd "C-c <right>")   'windswap-right)
+(global-set-key (kbd "C-c <down>")    'windswap-down)
+(global-set-key (kbd "C-c <up>")      'windswap-up)
 
 (global-set-key (kbd "M-t") nil) ;; Remove the old keybinding
 (global-set-key (kbd "M-t c") 'transpose-chars)
@@ -322,14 +304,6 @@
 
 ;; ###----Setting Key Bindings with use-package----###
 
-;; a minor mode that records your window configurations
-;; and lets you undo and redo changes made to it.
-(use-package winner
-  :config
-  (winner-mode 1)
-  :bind (("M-[" . winner-undo)
-         ("M-]" . winner-redo)))
-
 (ffap-bindings)		; find-file-at-point, smarter C-x C-f when point on path or URL
 
 ;; Saves the minibuffer history on every Emacs session.
@@ -372,7 +346,7 @@
 ;; (set-face-attribute 'highlight nil :foreground 'unspecified)
 
 (setq display-line-numbers 'relative)
-(setq display-line-numbers-width 2)
+(setq display-line-numbers-width 0)
 (set-frame-parameter nil 'fullscreen 'fullheight)
 ;;________________________________________________________________
 ;;    Fonts Setting
@@ -399,9 +373,9 @@
                             (setq-local company-transformers nil)))
 
 (set-face-attribute 'default nil
-		            :font "JetBrains Mono"
+		            :font "Fantasque Sans Mono" ; "JetBrains Mono"
 		            :weight 'light
-		            :height (cond ((string-equal system-type "gnu/linux") 100)
+		            :height (cond ((string-equal system-type "gnu/linux") 110)
 				                  ((string-equal system-type "darwin") 130)))
 ;; (set-frame-font "Comic Mono-10.5" nil t)
 ;; (set-frame-font "Monaco-9" nil t)
@@ -491,12 +465,16 @@ beginning of the line it stays there."
               )
 (setq delete-auto-save-files t)		; deletes buffer's auto save file when it is saved or killed with no changes in it.
 ;; ─────────────────── Added functionality (Generic usecases) ──────────────────
-(defun toggle-comment-on-line ()
-  "Comment or uncomment current line."
+;; Unfill paragraph
+;; Might be good. For instance for canceling all of the paragraph quickly or for commenting it away.
+(defun unfill-paragraph ()
+  "Convert a multi-line paragraph into a single line of text."
   (interactive)
-  (comment-or-uncomment-region (line-beginning-position) (line-end-position)))
+  (let ((fill-column (point-max)))
+	(fill-paragraph nil)))
+;; Handy key definition
+(define-key global-map "\M-Q" 'unfill-paragraph)
 
-(global-set-key (kbd "C-;") 'toggle-comment-on-line)
 
 (defun comment-pretty ()
   "Insert a comment with '─' (C-x 8 RET BOX DRAWINGS LIGHT HORIZONTAL) on each side."
@@ -598,16 +576,22 @@ beginning of the line it stays there."
 (setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
                          ("melpa" . "https://melpa.org/packages/")
                          ("org" . "http://orgmode.org/elpa/")))
-;; Bootstrap use-package
+;; Install use-package if not installed
 (unless (package-installed-p 'use-package)
   (package-refresh-contents) ; update archives
-  (package-install 'use-package) ; grab the newest use-package
-  (eval-when-compile (require 'use-package)))
-;; Always download if not available
-(setq use-package-always-ensure t)
+  (package-install 'use-package)) ; grab the newest use-package
+
+(eval-and-compile
+  (setq use-package-always-ensure t)
+  (setq use-package-expand-minimally t)
+  (setq use-package-compute-statistics t)
+  (setq use-package-enable-imenu-support t))
+
+(eval-when-compile
+  (require 'use-package)
+  (require 'bind-key))
 
 ;; ──────────────── Additional packages and their configurations ───────────────
-(require 'use-package)
 
 ;; Add `:doc' support for use-package so that we can use it like what a doc-strings is for
 ;; functions.
@@ -626,20 +610,31 @@ beginning of the line it stays there."
     ;; just process the next keywords
     (use-package-process-keywords name-symbol rest state)))
 
-(require 'bind-key)
-
 (use-package auto-package-update
+  :if (not (daemonp))
+  :custom
+  (auto-package-update-interval 7) ;; in days
+  (auto-package-update-prompt-before-update t)
+  (auto-package-update-delete-old-versions t)
+  (auto-package-update-hide-results t)
   :config
-  ;; Delete residual old versions
-  (setq auto-package-update-delete-old-versions t)
-  ;; Do not bother me when updates have taken place.
-  (setq auto-package-update-hide-results t)
-  ;; Update installed packages at startup if there is an update pending.
   (auto-package-update-maybe))
+
+(use-package diminish) ; Diminish, a feature that removes certain minor modes from mode-line.
 
 (use-package delight
   :ensure t
   :delight)
+
+;; Benchmark startup
+;; benchmark-init records startup time by package so we can debug. It only records things after it’s initialised, so put as early in config as possible.
+(use-package benchmark-init
+  :config
+  ;; To disable collection of benchmark data after init is done.
+  (add-hook 'after-init-hook 'benchmark-init/deactivate))
+
+(add-hook 'after-init-hook
+          (lambda () (message "loaded in %s" (emacs-init-time))))
 
 (use-package uniquify-files
   :config
@@ -676,6 +671,14 @@ beginning of the line it stays there."
 ;; (cl-defun all-the-icons-faicon (icon &rest _)
 ;;  #("" 0 1 (rear-nonsticky t display (raise -0.24) font-lock-face (:family "FontAwesome" :height 1.2) face (:family "FontAwesome" :height 1.2)))))
 
+
+;; Use all the icons for dired
+;; (use-package all-the-icons-dired
+;;   :quelpa (shell-switcher :fetcher github :repo "jtbm37/all-the-icons-dired.git")
+;;   :ensure t
+;;   )
+;; (add-hook 'dired-mode-hook 'all-the-icons-dired-mode)
+
 (use-package which-key
   :ensure t
   :init
@@ -706,25 +709,68 @@ beginning of the line it stays there."
     ;; Show a diff window displaying changes between undo nodes.
     (setq undo-tree-visualizer-diff t))
 
-;; Execute (undo-tree-visualize) then navigate along the tree to witness
-;; changes being made to your file live!
+(use-package winner
+  :doc "a minor mode that records your window configurations and lets you undo and redo changes made to it."
+  :config
+  (winner-mode 1)
+  :bind (("M-[" . winner-undo)
+         ("M-]" . winner-redo)))
+
+(use-package aggressive-indent
+  :doc "Intended Indentation"
+  :ensure t
+  :config
+  ;; (add-hook 'before-save-hook 'aggressive-indent-indent-defun)
+  ;; Have a way to save without indentation.
+  ;; (defun save-without-aggresive-indentation ()
+  ;;   (interactive)
+  ;;   (remove-hook 'before-save-hook 'aggressive-indent-indent-defun)
+  ;;   (save-buffer)
+  ;;   (add-hook 'before-save-hook 'aggressive-indent-indent-defun))
+  ;; :bind (("C-x s" . save-without-aggresive-indentation))
+  :delight)
 
 (use-package beacon
   :ensure t
   :init
-  (beacon-mode t))
+  (beacon-mode t)
+  (setq beacon-color "#50D050") ;; a light green
+  )
 
 (use-package rainbow-delimiters
   :ensure t
   :config
   (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
 
-(use-package doom-themes)
-(load-theme 'doom-gruvbox t)
+(use-package doom-themes
+  :config
+  ;; Global settings (default)
+  (setq doom-themes-enable-bold t 	 ; if nil, bold is universally disabled
+        doom-themes-enable-italic t  ; if nil, italics is universally disabled
+        doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
+  (load-theme 'doom-gruvbox t)
+  (doom-themes-visual-bell-config)	 ; Enable flashing mode-line on errors
+  (doom-themes-neotree-config)	 ; Enable custom neotree theme (all-the-icons must be installed!)
+  (doom-themes-org-config)		  ; Corrects (and improves) org-mode's native fontification.
+  )
+;; doom-one has no italics. I added few with
+(set-face-attribute 'font-lock-comment-face nil  :family "Comic Mono" :slant 'italic :height 100)
+(set-face-attribute 'font-lock-function-name-face nil :slant 'italic :weight 'bold)
+(set-face-attribute 'font-lock-variable-name-face nil :weight 'bold)
+(set-face-attribute 'font-lock-keyword-face nil :weight 'bold)
+
+;; (set-face-attribute 'font-lock-comment-face nil :foreground "#5B6268" :slant 'italic)
+;; (set-face-attribute 'font-lock-function-name-face nil :foreground "#c678dd" :slant 'italic :weight 'bold)
+;; (set-face-attribute 'font-lock-variable-name-face nil :foreground "#dcaeea" :weight 'bold)
 
 (use-package doom-modeline
-  :hook
-  (after-init . doom-modeline-mode))
+  :ensure t
+  :init
+  (doom-modeline-mode 1)
+  (setq doom-modeline-lsp t
+         ;; doom-modeline-height 1
+         ;; doom-modeline-bar-width 3
+        doom-modeline-project-detection 'project))
 
 (use-package ivy
   :doc "A generic completion mechanism"
@@ -761,7 +807,6 @@ beginning of the line it stays there."
   :doc "Custom positions for ivy buffers."
   :ensure t
   :config
-
   (when (member "Hasklig" (font-family-list))
     (setq ivy-posframe-parameters
           '((font . "Hasklig"))))
@@ -787,7 +832,7 @@ beginning of the line it stays there."
 (use-package swiper
   :doc "A better search"
   :ensure t
-  :bind (("C-s" . swiper-isearch))
+  :bind (("C-s" . swiper)) ; ("C-s" . swiper-isearch))
   :delight)
 
 ;; it looks like counsel is a requirement for swiper
@@ -795,12 +840,12 @@ beginning of the line it stays there."
   :ensure t
   :bind (("M-x" . counsel-M-x)
          ("M-y" . counsel-yank-pop)
-         ("C-'" . counsel-imenu)
          ("C-x b" . counsel-switch-buffer)
          ("C-c c" . counsel-compile)
          ("C-c d" . counsel-dired)
          ("C-c F" . counsel-org-file)
          ("C-c g" . counsel-git)
+         ("C-c i" . counsel-imenu)
          ("C-c j" . counsel-git-grep)
          ("C-c f" . counsel-file-jump)
          ("C-x l" . counsel-locate)
@@ -813,30 +858,65 @@ beginning of the line it stays there."
          ("C-c z" . counsel-bookmark)
          ("C-x C-r" . counsel-recentf)
          ("C-x C-f" . counsel-find-file)
-	 ("<f1> f" . counsel-describe-function)
-	 ("<f1> v" . counsel-describe-variable)
-	 ("<f1> l" . counsel-load-library)
-	 ("<f1> L" . counsel-find-library)
-	 ("<f2> i" . counsel-info-lookup-symbol)
-	 ("<f2> j" . counsel-set-variable)
-	 ("<f2> u" . counsel-unicode-char)
-	 ; ("C-c /" . counsel-ag)
+		 ("<f1> f" . counsel-describe-function)
+		 ("<f1> v" . counsel-describe-variable)
+		 ("<f1> l" . counsel-load-library)
+		 ("<f1> L" . counsel-find-library)
+		 ("<f2> i" . counsel-info-lookup-symbol)
+		 ("<f2> j" . counsel-set-variable)
+		 ("<f2> u" . counsel-unicode-char)
+		 ; ("C-c /" . counsel-ag)
          ; ("C-c s" . counsel-rg)
-         ; ("C-S-o" . counsel-rhythmbox)
-	 :map counsel-find-file-map
+		 ; ("C-S-o" . counsel-rhythmbox)
+         ; (define-key read-expression-map (kbd "C-r") 'counsel-expression-history)
+		 :map counsel-find-file-map
          ("RET" . ivy-alt-done))
   :delight)
 
-;; No need to display all the minor mode name
-(use-package diminish
-  :ensure t)
+(use-package expand-region
+  :bind ("C-=" . er/expand-region))
+
+(use-package company
+  :ensure t
+  :diminish t
+  :init
+  (add-hook 'after-init-hook 'global-company-mode)
+  (add-hook 'elm-mode-hook 'company-mode)
+  :config
+  (setq company-show-numbers t
+        company-idle-delay 0.02
+        company-minimum-prefix-length 2
+        company-echo-delay 0
+        company-dabbrev-downcase nil
+        company-selection-wrap-around t
+        company-dabbrev-code-everywhere t
+        company-dabbrev-code-modes t
+        company-dabbrev-code-ignore-case t
+        company-tooltip-align-annotations t
+        company-transformers '(company-sort-prefer-same-case-prefix)))
+(global-set-key (kbd "<tab>") #'company-indent-or-complete-common)
+(global-set-key (kbd "M-TAB") #'company-complete)
+; Use tab key to cycle through suggestions.
+; ('tng' means 'tab and go')
+(company-tng-configure-default)
+(setq company-format-margin-function #'company-vscode-light-icons-margin)
+(with-eval-after-load 'company
+;  (define-key company-active-map (kbd "M-/") #'company-complete)
+  (define-key company-active-map (kbd "M-.") #'company-show-location)
+  (define-key company-active-map (kbd "RET") nil)
+  (define-key company-active-map
+              (kbd "<backtab>")
+              (lambda ()
+                (interactive)
+                (company-complete-common-or-cycle -1))))
 
 (use-package yasnippet
   :ensure t
   :diminish yas-minor-mode
   :config
-  (add-to-list 'yas-snippet-dirs "~/.emacs.d/elpa/snippets")
-  (yas-global-mode 1)
+  (yas-global-mode t)
+  (add-to-list 'hippie-expand-try-functions-list
+               'yas-hippie-try-expand)
   (global-set-key (kbd "M-/") 'company-yasnippet))
 
 (use-package yasnippet-snippets
@@ -849,6 +929,15 @@ beginning of the line it stays there."
 
 (use-package company-wordfreq
   :ensure t)
+
+(use-package avy
+  :ensure t)
+(global-set-key (kbd "C-'") 'avy-goto-char)
+(global-set-key (kbd "C-:") 'avy-goto-char-2)
+(global-set-key (kbd "M-g f") 'avy-goto-line)
+(global-set-key (kbd "M-g w") 'avy-goto-word-1)
+(global-set-key (kbd "M-g e") 'avy-goto-word-0)
+(global-set-key (kbd "C-c C-j") 'avy-resume)
 
 ;; Nyan Cat is lovely, it can live on mode line
 (use-package nyan-mode
@@ -877,41 +966,7 @@ beginning of the line it stays there."
 
 (setq line-number-display-limit nil)
 (setq line-number-display-limit-width 2000000)
-;;________________________________________________________________
-;;    Icomplete Mode Setup
-;;________________________________________________________________
-;; WARNING: copy/rename file in DIRED OVERWRITES
 
-;; with fido mode on, when copy or move a file in dired,
-;; be sure to press [Ctrl+d] to select current dir.
-;; Otherwise, if you press Enter, it selects current file choice and prompt to override file.
-
-;; (if (version< emacs-version "28.1")
-;;     (progn
-;;       (progn
-;;         ;; make buffer switch command do suggestions, also for find-file command
-;;         (require 'ido)
-;;         (ido-mode 1)
-;;         ;; show choices vertically
-;;         (setf (nth 2 ido-decorations) "\n")
-;;         ;; show any name that has the chars you typed
-;;         (setq ido-enable-flex-matching t)
-;;         ;; use current pane for newly opened file
-;;         (setq ido-default-file-method 'selected-window)
-;;         ;; use current pane for newly switched buffer
-;;         (setq ido-default-buffer-method 'selected-window)
-;;         )
-;;       (progn
-;;         ;; minibuffer enhanced completion icomplete
-;;         (require 'icomplete)
-;;         (icomplete-mode 1)
-;;         ;; show choices vertically
-;;         (setq icomplete-separator "\n")
-;;         (setq icomplete-hide-common-prefix nil)
-;;         (setq icomplete-in-buffer t)
-;;         (define-key icomplete-minibuffer-map (kbd "<right>") 'icomplete-forward-completions)
-;;         (define-key icomplete-minibuffer-map (kbd "<left>") 'icomplete-backward-completions)))
-;;   (fido-vertical-mode 1))
 (setq mail-user-agent 'message-user-agent)
 (setq message-send-mail-function 'smtpmail-send-it
       smtpmail-stream-type 'starttls
@@ -936,12 +991,69 @@ beginning of the line it stays there."
         (goto-char (point-min))
         (forward-line (1- line-number))))))
 
-
+(provide 'init)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; init.el ends here
 (put 'scroll-left 'disabled nil)
 (put 'narrow-to-page 'disabled nil)
 (put 'narrow-to-region 'disabled nil)
 (put 'dired-find-alternate-file 'disabled nil)
 
-;; I don't want suggestions from open files / buffers to be automatically lowercased as these are often camelcase function names.
-(setq company-dabbrev-downcase nil)
+;; ─────────────────────────────────── *ORG* ───────────────────────────────────
+;; (load-file "~/.emacs.d/org-config.el")
+
+;; ;; Open agenda view when Emacs is started.
+;; ;; Do it only if it's Suvrat's computer.
+;; (when (equal user-login-name "suvratapte")
+;;   (jump-to-org-agenda)
+;;   (delete-other-windows))
+
+;; (provide 'init)
+(defun dotspacemacs/user-config ()
+  "Configuration function for user code.
+This function is called at the very end of Spacemacs initialization after
+layers configuration.
+This is the place where most of your configurations should be done. Unless it is
+explicitly specified that a variable should be set before a package is loaded,
+you should place your code here."
+  (require 'xclip)
+  (xclip-mode 1)
+
+  (defvar company-mode/enable-yas t "Enable yasnippet for all backends.")
+
+  (defun company-mode/backend-with-yas (backend)
+    (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
+        backend
+      (append (if (consp backend) backend (list backend))
+              '(:with company-yasnippet))))
+
+  (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
+
+  (use-package lsp-mode
+    :ensure t
+    :commands lsp
+    :hook (elm-mode . lsp)
+    :config
+    (setq lsp-prefer-flymake nil
+          lsp-enable-symbol-highlighting nil
+          lsp-enable-snippet nil
+          lsp-ui-sideline-enable nil
+          lsp-ui-flycheck-enable t))
+
+  (use-package lsp-ui
+    :ensure t
+    :commands lsp-ui-mode)
+
+  (use-package company-lsp
+    :ensure t
+    :commands company-lsp
+    :config
+    (push '(company-lsp :with company-yasnippet) company-backends)
+    )
+
+  (use-package helm-lsp :commands helm-lsp-workspace-symbol)
+  (use-package lsp-treemacs :commands lsp-treemacs-errors-list)
+  (use-package dap-mode)
+
+  (add-hook 'elm-mode-hook (lambda () (defalias 'company-elm 'company-lsp)))
+  )

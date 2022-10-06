@@ -2,23 +2,58 @@
 (global-set-key (kbd "<escape>") (kbd "C-g"))
 
 ;; A dashboard on startup can clean my mind
-(setq emacs-banner "~/pix/tom.png")
 (use-package dashboard
   :ensure t
+  :diminish (dashboard-mode page-break-lines-mode)
   :config
-  (dashboard-setup-startup-hook)
-  (if (file-exists-p emacs-banner)
-      (setq-default dashboard-startup-banner emacs-banner))
+  (setq dashboard-footer "Time teaches all things.")
+  (setq dashboard-footer-icon (all-the-icons-octicon "calendar"
+                                                     :height 1.1
+                                                     :v-adjust -0.05
+                                                     :face 'font-lock-keyword-face))
 
-  (setq dashboard-items '((recents  . 10)
-                          (bookmarks . 5)
-                                        ;                          (projects . 5)
-                          (agenda . 5))))
+  (setq dashboard-navigator-buttons
+        `(;; line1
+          ((,(all-the-icons-octicon "mark-github" :height 1.1 :v-adjust 0.0)
+            "Homepage"
+            "Browse homepage"
+            (lambda (&rest _) (browse-url "homepage")))
+           ("★" "Star" "Show stars" (lambda (&rest _) (show-stars)) warning)
+           ("?" "" "?/h" #'show-help nil "<" ">"))
+          ;; line 2
+          ((,(all-the-icons-faicon "linkedin" :height 1.1 :v-adjust 0.0)
+            "Linkedin"
+            ""
+            (lambda (&rest _) (browse-url "homepage")))
+           ("⚑" nil "Show flags" (lambda (&rest _) (message "flag")) error))))
+  (setq
+   dashboard-projects-backend 'project-el
+   dashboard-startup-banner (concat user-emacs-directory "logos/tom&jerry.png")
+   dashboard-image-banner-max-height 160
+   dashboard-banner-logo-title "Ποσειδον 🔱 εδιτορ"
+   dashboard-set-heading-icons t
+   dashboard-set-file-icons t
+   dashboard-show-shortcuts nil
+   dashboard-center-content t
+   dashboard-set-navigator t
+   dashboard-set-init-info t
+   dashboard-projects-switch-function 'counsel-projectile-switch-project-by-name
+
+   dashboard-items '((recents        . 5)
+                     (projects       . 5)
+                     (bookmarks      . 5)
+                     (agenda         . 5)
+                     (registers      . 5)
+                     )
+   )
+  :custom-face
+  (dashboard-heading ((t (:foreground "#f1fa8c" :weight bold))))
+  :hook
+  (after-init . dashboard-setup-startup-hook))
 
 ;; comment ON/OFF to DEBUG init
 ;; (setq debug-on-error t)
 
-; overkill this as much as possible, never works anyway
 (set-language-environment 'utf-8)
 (setq locale-coding-system 'utf-8)
 (set-default-coding-systems 'utf-8)
@@ -157,11 +192,11 @@
          ("C-;" . flyspell-auto-correct-previous-word)))
 
 (use-package emmet-mode
-:ensure t
-:config
-(add-hook 'sgml-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
-(add-hook 'web-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
-(add-hook 'css-mode-hook  'emmet-mode)) ;; enable Emmet's css abbreviation.
+  :ensure t
+  :config
+  (add-hook 'sgml-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
+  (add-hook 'web-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
+  (add-hook 'css-mode-hook  'emmet-mode)) ;; enable Emmet's css abbreviation.
 
 ;; ──────────────────── Better interaction with X clipboard ────────────────────
 (setq-default
@@ -468,7 +503,8 @@ beginning of the line it stays there."
               save-interprogram-paste-before-kill t
               message-log-max 1000
               fill-column 80
-              column-number-mode t               ; Show (line,column) in mode-line
+              make-pointer-invisible t          ; hide cursor when writing
+              column-number-mode t              ; Show (line,column) in mode-line
               cua-selection-mode t ; Delete regions
               ;; Use your name in the frame title. :)
               frame-title-format (format "%s's Emacs" (if (or (equal user-login-name "suvratapte")
@@ -673,6 +709,20 @@ beginning of the line it stays there."
   :bind ("C-x g" . magit-status)
   :delight)
 
+
+(use-package git-gutter
+  :ensure t
+  :diminish
+  :hook ((prog-mode org-mode) . git-gutter-mode )
+  ;;✘
+  :config
+  (setq git-gutter:modified-sign "†")
+  (setq git-gutter:added-sign "†")
+  (setq git-gutter:deleted-sign "†")
+  (set-face-foreground 'git-gutter:added "Green")
+  (set-face-foreground 'git-gutter:modified "Gold")
+  (set-face-foreground 'git-gutter:deleted "Red"))
+
 (use-package ibuffer
   :doc "Better buffer management"
   :bind ("C-x C-b" . ibuffer)
@@ -750,10 +800,9 @@ beginning of the line it stays there."
 
 (use-package doom-themes
   :config
-  ;; Global settings (default)
   (setq doom-themes-enable-bold t 	 ; if nil, bold is universally disabled
         doom-themes-enable-italic t  ; if nil, italics is universally disabled
-        doom-themes-treemacs-theme "doom-atom") ; use "doom-colors" for less minimal icon theme
+        doom-themes-treemacs-theme "doom-colors") ; doom-atom or use "doom-colors" for less minimal icon theme
   (load-theme 'doom-gruvbox t)
   (doom-themes-visual-bell-config)	 ; Enable flashing mode-line on errors
   (doom-themes-neotree-config)	 ; Enable custom neotree theme (all-the-icons must be installed!)
@@ -763,11 +812,22 @@ beginning of the line it stays there."
 (use-package doom-modeline
   :ensure t
   :init
-  (doom-modeline-mode 1)
-  (setq doom-modeline-lsp t
-         ;; doom-modeline-height 1
-         ;; doom-modeline-bar-width 3
-        doom-modeline-project-detection 'project))
+  (setq doom-modeline-env-enable-python nil
+        doom-modeline-env-enable-go nil
+        doom-modeline-buffer-encoding 'nondefault
+        doom-modeline-hud t
+        doom-modeline-persp-icon nil
+        doom-modeline-persp-name nil
+        doom-modeline-display-misc-in-all-mode-lines nil)
+  :config
+  (setq doom-modeline-minor-modes nil
+        doom-modeline-irc nil
+        doom-modeline-buffer-state-icon nil
+        doom-modeline-lsp t
+        ;; doom-modeline-height 1
+        ;; doom-modeline-bar-width 3
+        doom-modeline-project-detection 'project)
+  (doom-modeline-mode 1))
 
 (use-package ivy
   :doc "A generic completion mechanism"
@@ -849,7 +909,6 @@ beginning of the line it stays there."
          ("C-c m" . counsel-linux-app)
          ("C-c n" . counsel-fzf)
          ("C-c o" . counsel-outline)
-         ("C-c p" . counsel-package)
          ("C-c T" . counsel-load-theme)
          ("C-c z" . counsel-bookmark)
          ("C-x C-r" . counsel-recentf)
@@ -861,12 +920,18 @@ beginning of the line it stays there."
 		 ("<f2> i" . counsel-info-lookup-symbol)
 		 ("<f2> j" . counsel-set-variable)
 		 ("<f2> u" . counsel-unicode-char))
-		 ; ("C-c /" . counsel-ag)
-         ; ("C-c s" . counsel-rg)
-		 ; ("C-S-o" . counsel-rhythmbox)
-;		 :map counsel-find-file-map
-;         ("RET" . ivy-alt-done))
+                                        ; ("C-c /" . counsel-ag)
+                                        ; ("C-c s" . counsel-rg)
+                                        ; ("C-S-o" . counsel-rhythmbox)
+  (:map counsel-find-file-map
+        ("RET" . ivy-alt-done))
   :delight)
+
+(use-package projectile
+  :ensure t
+  :config
+  (projectile-mode +1))
+(define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 
 (use-package expand-region
   :bind ("C-=" . er/expand-region))
@@ -1049,7 +1114,11 @@ beginning of the line it stays there."
   :ensure t)
 
 (use-package avy
-  :ensure t)
+  :ensure t
+  :config
+  (setq avy-timeout-seconds 0.5)
+  (setq avy-ignored-modes
+	    '(image-mode doc-view-mode pdf-view-mode exwm-mode)))
 (global-set-key (kbd "C-'") 'avy-goto-char)
 (global-set-key (kbd "C-:") 'avy-goto-char-2)
 (global-set-key (kbd "M-g f") 'avy-goto-line)
@@ -1079,21 +1148,17 @@ beginning of the line it stays there."
 
 ;; Browse source tree with Speedbar file browser
 (setq speedbar-show-unknown-files t)
-(setq company-backends (delete 'company-semantic company-backends))
+;; (setq company-backends (delete 'company-semantic company-backends))
 
-;; This snippet loads all *.el files in a directory.
+;; ──────────── This snippet loads all *.el files in a directory ─────────── ;;
 (defun load-directory (dir)
   (let ((load-it (lambda (f)
-                   (load-file (concat (file-name-as-directory dir) f)))
-                 ))
+                   (load-file (concat (file-name-as-directory dir) f)))))
     (mapc load-it (directory-files dir nil "\\.el$"))))
-    (load-directory "~/.emacs.d/elpa/")
+(load-directory "~/.emacs.d/elpa/")
 
-(setq line-number-display-limit nil)
-(setq line-number-display-limit-width 2000000)
-
-;; Open File with Line Number
-;; Open files and goto lines like we see from g++ etc. i.e. Gemfile:12
+;; ─────────────────────── Open Any File With LineNumber ─────────────────────── ;;
+;; i.e. myfile.cpp:12
 (defadvice find-file (around find-file-line-number
                              (filename &optional wildcards)
                              activate)
@@ -1117,62 +1182,3 @@ beginning of the line it stays there."
 (put 'narrow-to-page 'disabled nil)
 (put 'narrow-to-region 'disabled nil)
 (put 'dired-find-alternate-file 'disabled nil)
-
-;; ─────────────────────────────────── *ORG* ───────────────────────────────────
-;; (load-file "~/.emacs.d/org-config.el")
-
-;; ;; Open agenda view when Emacs is started.
-;; ;; Do it only if it's Suvrat's computer.
-;; (when (equal user-login-name "suvratapte")
-;;   (jump-to-org-agenda)
-;;   (delete-other-windows))
-
-;; (defun dotspacemacs/user-config ()
-;;   "Configuration function for user code.
-;; This function is called at the very end of Spacemacs initialization after
-;; layers configuration.
-;; This is the place where most of your configurations should be done. Unless it is
-;; explicitly specified that a variable should be set before a package is loaded,
-;; you should place your code here."
-;;   (require 'xclip)
-;;   (xclip-mode 1)
-
-;;   (defvar company-mode/enable-yas t "Enable yasnippet for all backends.")
-
-;;   (defun company-mode/backend-with-yas (backend)
-;;     (if (or (not company-mode/enable-yas) (and (listp backend) (member 'company-yasnippet backend)))
-;;         backend
-;;       (append (if (consp backend) backend (list backend))
-;;               '(:with company-yasnippet))))
-
-;;   (setq company-backends (mapcar #'company-mode/backend-with-yas company-backends))
-
-;;   (use-package lsp-mode
-;;     :ensure t
-;;     :commands lsp
-;;     :hook (elm-mode . lsp)
-;;     :config
-;;     (setq lsp-prefer-flymake nil
-;;           lsp-enable-symbol-highlighting nil
-;;           lsp-enable-snippet nil
-;;           lsp-ui-sideline-enable nil
-;;           lsp-ui-flycheck-enable t))
-
-;;   (use-package lsp-ui
-;;     :ensure t
-;;     :commands lsp-ui-mode)
-
-;;   (use-package company-lsp
-;;     :ensure t
-;;     :commands company-lsp
-;;     :config
-;;     (push '(company-lsp :with company-yasnippet) company-backends)
-;;     )
-
-;;   (use-package helm-lsp :commands helm-lsp-workspace-symbol)
-;;   (use-package lsp-treemacs :commands lsp-treemacs-errors-list)
-;;   (use-package dap-mode)
-
-;;   (add-hook 'elm-mode-hook (lambda () (defalias 'company-elm 'company-lsp)))
-;;   )
-;; (add-hook 'company--perform 'dotspacemacs/user-config)

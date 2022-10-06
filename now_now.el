@@ -150,8 +150,6 @@
 ;; (global-auto-complete-mode t)
 ;; (setq ac-modes '(sh-mode lisp-mode c-mode c++-mode sql-mode html-mode)) ; you can specified only for some certain mode
 
-(setq powerline-default-separator nil)
-
 (setq ibuffer-saved-filter-groups
       (quote (("default"
                ("dired" (mode . dired-mode))
@@ -311,20 +309,13 @@
 
 ;; Basic Customization
 (setq display-time-format "%l:%M%P (%a) %e %b ♪" 	; %D for date format
-      display-time-default-load-average nil)
-
-(setq line-move-visual t)
-;; (setq mode-line-compact t)
-
+      display-time-default-load-average nil
+      mode-line-compact t)
 ;; Permanent display of line and column numbers is handy.
 (size-indication-mode 1)
 (display-time-mode)
 (display-battery-mode)
 
-;; Sensible line breaking
-(add-hook 'text-mode-hook 'visual-line-mode)
-;; Scroll to the first and last line of the buffer
-(setq scroll-error-top-bottom t)
 ;;________________________________________________________________
 ;;    Balancing Parentheses
 ;;________________________________________________________________
@@ -513,6 +504,7 @@ beginning of the line it stays there."
                                                         (capitalize user-login-name)))
               )
 (setq delete-auto-save-files t)		; deletes buffer's auto save file when it is saved or killed with no changes in it.
+
 ;; ─────────────────── Added functionality (Generic usecases) ──────────────────
 ;; Unfill paragraph
 ;; Might be good. For instance for canceling all of the paragraph quickly or for commenting it away.

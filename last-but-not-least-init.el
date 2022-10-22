@@ -91,13 +91,15 @@
 ;; comment ON/OFF to DEBUG init
 ;; (setq debug-on-error t)
 
-(set-language-environment 'utf-8)
-(set-default-coding-systems 'utf-8)
-(set-terminal-coding-system 'utf-8)
+;; Encoding
+(prefer-coding-system 'utf-8-unix)
+(set-locale-environment "en_US.UTF-8")
+(set-default-coding-systems 'utf-8-unix)
+(set-selection-coding-system 'utf-8-unix)
+(set-buffer-file-coding-system 'utf-8-unix)
+(set-clipboard-coding-system 'utf-8)
 (set-keyboard-coding-system 'utf-8)
-(set-selection-coding-system 'utf-8)
-(prefer-coding-system 'utf-8)
-
+(set-terminal-coding-system 'utf-8)
 ;;________________________________________________________________
 ;;    ORG MODE
 ;;________________________________________________________________
@@ -404,23 +406,24 @@
 ;; (set-face-attribute 'region nil :background "#666" :foreground "#ffffff")	; Change the HIGHLIGHT COLOR for SELECTED TEXT
 ;; (set-face-attribute 'highlight nil :foreground 'unspecified)
 
-(setq display-line-numbers 'relative)
-(setq display-line-numbers-width 0)
 (set-frame-parameter nil 'fullscreen 'fullheight)
 ;;________________________________________________________________
 ;;    Fonts Setting
 ;;________________________________________________________________
-(global-font-lock-mode 1)			; Use font-lock everywhere.
-(setq font-lock-maximum-decoration t)		; We have CPU to spare; highlight all syntax categories.
+(global-font-lock-mode 1)               ; Use font-lock everywhere.
+(setq font-lock-maximum-decoration t)   ; We have CPU to spare; highlight all syntax categories.
 
 (setq default-input-method "bengali-probhat")
 (set-fontset-font "fontset-default" 'bengali (font-spec :family "Kalpurush" :size 16))
 
 (defun remove-quail-show-guidance ()
+  "Function for removing guidance."
   nil)
 (defun remove-quail-completion ()
+  "Function for removing completion."
   (quail-select-current))
 (defun bn-company-wordfreq ()
+  "Bangla auto-suggestion with company-wordfreq."
   (interactive)
   (advice-add 'quail-show-guidance :override #'remove-quail-show-guidance)
   (advice-add 'quail-completion :override #'remove-quail-completion)
@@ -457,7 +460,7 @@
 (set-mouse-color "white")
 (setq x-stretch-cursor t)		; make cursor the width of the character it is under i.e. full width of a TAB
 (defun djcb-set-cursor-according-to-mode ()
-    "change cursor color and type according to some minor modes."
+    "Change cursor color and type according to some minor modes."
     (cond
      (buffer-read-only
       (set-cursor-color "yellow")
@@ -473,8 +476,8 @@
 (blink-cursor-mode 1)			; Turn-off Cursor Blink (1 to Enable & 0 to Stop)
 
 (defun ljos/back-to-indentation|beginning-of-line ()
-  "Moves the cursor back to indentation or to the beginning of
-the line if it is already at the indentation.  If it is at the
+  "Move cursor back to indentation or to the beginning of the
+line if it is already at the indentation.  If it is at the
 beginning of the line it stays there."
   (interactive)
   (when (not (bolp))
@@ -1219,18 +1222,14 @@ beginning of the line it stays there."
         ("C-k"        . company-select-previous-or-abort)
         ("C-s"        . company-filter-candidates)
         ([escape]     . company-search-abort))
-  ;; :init
-  ;; (add-hook 'c-mode-common-hook 'company-mode)
-  ;; (add-hook 'c++-mode-hook 'company-mode)
-  ;; (add-hook 'sql-mode-hook 'company-mode)
   :init
   (setq company-idle-delay 0.0
         company-echo-delay 0
         completion-ignore-case t
+        company-require-match nil
         company-show-quick-access t
         company-selection-wrap-around t
-        company-minimum-prefix-length 2
-                                        ; company-auto-complete-chars nil
+        company-minimum-prefix-length 1
         company-dabbrev-code-modes t
         company-dabbrev-code-everywhere t
         company-dabbrev-ignore-case nil
@@ -1250,23 +1249,33 @@ beginning of the line it stays there."
            company-files
            company-gtags
            company-etags
+           company-rtags
            company-elisp
-           company-clang
+           ;; company-ispell
+           ;; company-clang    ; it's too slow
+           company-c-headers
            company-irony-c-headers
            company-irony
            company-jedi
            company-cmake
-           company-ispell
            company-yasnippet
            company-dabbrev
            company-dabbrev-code))))
 ;; Use tab key to cycle through suggestions. ('tng' means 'tab and go')
                                         ; (company-tng-configure-default)
+(use-package company-rtags)
+(use-package company-c-headers)
+
+;; (use-package irony
+;;   :config
+;;   (add-hook 'c++-mode-hook 'irony-mode)
+;;   (add-hook 'c-mode-hook 'irony-mode)
+;;   (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
 
 (use-package company-quickhelp
   :after company
   :config
-  (setq company-quickhelp-idle-delay 0.1)
+  (setq company-quickhelp-idle-delay 0.0)
   (company-quickhelp-mode 1))
 
 ;; This package adds usage-based sorting to Company
@@ -1276,10 +1285,6 @@ beginning of the line it stays there."
   :config
   (company-statistics-mode))
 
-(use-package yasnippet-snippets
-  :after yasnippet
-  :config (yasnippet-snippets-initialize))
-
 (use-package yasnippet
   :delight yas-minor-mode " υ"
   :hook (yas-minor-mode . my/disable-yas-if-no-snippets)
@@ -1288,6 +1293,10 @@ beginning of the line it stays there."
   (defun my/disable-yas-if-no-snippets ()
     (when (and yas-minor-mode (null (yas--get-snippet-tables)))
       (yas-minor-mode -1))))
+
+(use-package yasnippet-snippets
+  :after yasnippet
+  :config (yasnippet-snippets-initialize))
 
 (use-package ivy-yasnippet :after yasnippet)
 (use-package react-snippets :after yasnippet)
@@ -1302,32 +1311,11 @@ beginning of the line it stays there."
         ))
 
 ;; ─────────────────────────────────── C/C++ ─────────────────────────────────── ;;
-;; (add-hook 'c++-mode-hook 'yas-minor-mode)
-;; (add-hook 'c-mode-hook 'yas-minor-mode)
-
 ;; (use-package flycheck-clang-analyzer
 ;;   :config
 ;;   (with-eval-after-load 'flycheck
 ;;     (require 'flycheck-clang-analyzer)
 ;;      (flycheck-clang-analyzer-setup)))
-
-;; (with-eval-after-load 'company
-;;   (add-hook 'c++-mode-hook 'company-mode)
-;;   (add-hook 'c-mode-hook 'company-mode))
-
-;; (use-package company-c-headers)
-
-;; (use-package company-irony
-;;   :config
-;;   (setq company-backends '((company-c-headers
-;;                             company-dabbrev-code
-;;                             company-irony))))
-
-;; (use-package irony
-;;   :config
-;;   (add-hook 'c++-mode-hook 'irony-mode)
-;;   (add-hook 'c-mode-hook 'irony-mode)
-;;   (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
 
 ;; ──────────────────────────────────── Bash ─────────────────────────────────── ;;
 (add-hook 'shell-mode-hook 'yas-minor-mode)

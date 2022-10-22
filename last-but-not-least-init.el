@@ -1251,11 +1251,11 @@ beginning of the line it stays there."
            company-etags
            company-rtags
            company-elisp
-           ;; company-ispell
-           ;; company-clang    ; it's too slow
+           company-ispell
            company-c-headers
-           company-irony-c-headers
-           company-irony
+           ;; company-clang    ; it's too slow
+           ;; company-irony-c-headers
+           ;; company-irony
            company-jedi
            company-cmake
            company-yasnippet

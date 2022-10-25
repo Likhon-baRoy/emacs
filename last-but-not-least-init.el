@@ -103,12 +103,17 @@
 ;;________________________________________________________________
 ;;    ORG MODE
 ;;________________________________________________________________
-
-;; Remove the emphasis markers from your Org Mode buffer
-(setq org-hide-emphasis-markers t)
 (setq org-latex-inputenc-alist '(("utf8" . "utf8x")))
+(when window-system (global-prettify-symbols-mode t))
 
-(require 'org-tempo)
+(use-package org
+  :config
+  (setq org-ellipsis " ⤵") ;; ↴, ▼, ▶, ⤵, ▾
+  (org-indent-mode)
+  (variable-pitch-mode 1)
+  (auto-fill-mode 0)
+  (visual-line-mode 1))
+
 ;; Improve org mode looks
 (setq org-roam-v2-ack t                 ; anonying startup message
       org-startup-indented t
@@ -119,23 +124,55 @@
       org-log-done 'time                ; I need to know when a task is done
       )
 
-;; ;; Show hidden emphasis markers
+(require 'org-tempo)
+
+(use-package org-bullets
+  :after org
+  :hook (org-mode . org-bullets-mode)
+  :custom
+  (org-bullets-bullet-list '("◉" "○" "●" "○" "●" "○" "●")))
+
+;; Replace list hyphen with dot
+(font-lock-add-keywords 'org-mode
+                        '(("^ *\\([-]\\) "
+                           (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+
+(dolist (face '((org-level-1 . 1.2)
+                (org-level-2 . 1.1)
+                (org-level-3 . 1.05)
+                (org-level-4 . 1.0)
+                (org-level-5 . 1.1)
+                (org-level-6 . 1.1)
+                (org-level-7 . 1.1)
+                (org-level-8 . 1.1)))
+  (set-face-attribute (car face) nil :font "Cantarell" :weight 'regular :height (cdr face)))
+
+;; Make sure org-indent face is available
+(require 'org-indent)
+
+;; Ensure that anything that should be fixed-pitch in Org files appears that way
+(set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+(set-face-attribute 'org-code nil   :inherit '(shadow fixed-pitch))
+(set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))
+(set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+(set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+(set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+(set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
+
 ;; (use-package org-appear
 ;;   :hook (org-mode . org-appear-mode))
 
-;;  Ellipsis
-(setq org-hide-emphasis-markers nil)
-(setq org-ellipsis " ⤵") ;; ↴, ▼, ▶, ⤵, ▾
-
 ;; Beautify Org Checkbox Symbol
 (defun teddy-ma/org-buffer-setup ()
+  "Something for like document, i guess 😕."
   (push '("[ ]" . "☐" ) prettify-symbols-alist)
   (push '("[X]" . "☑" ) prettify-symbols-alist)
   (push '("[-]" . "❍" ) prettify-symbols-alist)
-  (prettify-symbols-mode)
   )
+(add-hook 'org-mode-hook #'teddy-ma/org-buffer-setup)
 
 (defun my/org-mode/load-prettify-symbols ()
+  "Looking pretty good, so i adopted it."
   (interactive)
   (setq prettify-symbols-alist
         (mapcan (lambda (x) (list x (cons (upcase (car x)) (cdr x))))
@@ -149,8 +186,9 @@
                   ("#+results:" . ?)
                   ("#+call:" . ?)
                   (":properties:" . ?)
-                  (":logbook:" . ?))))
-  (prettify-symbols-mode 1))
+                  (":logbook:" . ?)
+                  ("->" . ?➡)))))
+(add-hook 'org-mode-hook #'my/org-mode/load-prettify-symbols)
 
 ;; (setq-default prettify-symbols-alist '(("#+BEGIN_SRC" . "»") ("#+END_SRC" . "«")("#+begin_src" . "»") ("#+end_src" . "«") ("lambda"  . "λ") ("->" . "→")))
 ;; Exported html should have no default style. I can style it myself:
@@ -161,11 +199,8 @@
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((emacs-lisp . t)
-   (ruby . t)
    (js .t )
-   (lua .t )
-   (shell . t)
-   (plantuml . t)))
+   (shell . t)))
 
 ;; ###----startup performance----###
 
@@ -275,13 +310,14 @@
 (define-key esc-map "&" 'query-replace-regexp)		; redefined ESC-&
 (global-set-key (kbd "M-#") 'query-replace-regexp)
 (global-set-key (kbd "M-\"") 'insert-pair)			; Wrap text in quotes
-;(global-set-key (kbd "TAB") 'self-insert-command)	; To make sure that emacs is actually using TABS instead of SPACES
+                                        ;(global-set-key (kbd "TAB") 'self-insert-command)	; To make sure that emacs is actually using TABS instead of SPACES
 
 ;; I use C-h for backspace in Emacs and move `help-command' elsewhere:
+(global-unset-key (kbd "C-h"))
 (global-set-key "\C-h" 'backward-delete-char-untabify)
 (define-key isearch-mode-map "\C-h" 'isearch-delete-char)
+;; (global-set-key (kbd "C-r") 'counsel-minibuffer-history)
 (global-set-key (kbd "C-S-H") 'kill-whole-line)
-(global-set-key (kbd "<f12>") 'help-command)
 (global-set-key "\C-c\C-c" 'comment-or-uncomment-region)
 (global-set-key "\C-t" 'toggle-truncate-lines) ; this lets us have long lines go off the side of the screen instead of hosing up the ascii art
 (global-set-key "\C-c\C-d" "\C-a\C- \C-n\M-w\C-y")	; Duplicate a whole line
@@ -298,6 +334,7 @@
 (global-set-key (kbd "C-.") #'other-window)
 (global-set-key (kbd "C-,") #'prev-window)
 (defun prev-window ()
+  "Go to previous window."
   (interactive)
   (other-window -1))
 
@@ -333,7 +370,7 @@
 (global-set-key (kbd "M-t e") 'transpose-sexps)
 (global-set-key (kbd "M-t s") 'transpose-sentences)
 (global-set-key (kbd "M-t p") 'transpose-paragraphs)
-
+(global-set-key (kbd "M-<f1>") 'emojify-insert-emoji)
 ;;________________________________________________________________
 ;;    Separte Customization from init file
 ;;________________________________________________________________
@@ -378,8 +415,6 @@
 (savehist-mode t)
 (setq savehist-additional-variables '(kill-ring search-ring regexp-search-ring))
 (setq history-length 25)
-
-(when window-system (global-prettify-symbols-mode t))
 
 (defalias 'yes-or-no-p 'y-or-n-p)		; Ask y or n instead of yes or no
 
@@ -460,18 +495,18 @@
 (set-mouse-color "white")
 (setq x-stretch-cursor t)		; make cursor the width of the character it is under i.e. full width of a TAB
 (defun djcb-set-cursor-according-to-mode ()
-    "Change cursor color and type according to some minor modes."
-    (cond
-     (buffer-read-only
-      (set-cursor-color "yellow")
-      (setq cursor-type '(hbar . 3)))
-     (overwrite-mode
-      (set-cursor-color "red")
-      (setq cursor-type 'hollow))
-     (t
-;;      (set-cursor-color "lightblue")
-      (set-cursor-color "DeepSkyBlue")
-      (setq cursor-type '(bar . 2)))))
+  "Change cursor color and type according to some minor modes."
+  (cond
+   (buffer-read-only
+    (set-cursor-color "yellow")
+    (setq cursor-type '(hbar . 3)))
+   (overwrite-mode
+    (set-cursor-color "red")
+    (setq cursor-type 'hollow))
+   (t
+    ;;      (set-cursor-color "lightblue")
+    (set-cursor-color "DeepSkyBlue")
+    (setq cursor-type '(bar . 2)))))
 (add-hook 'post-command-hook 'djcb-set-cursor-according-to-mode)
 (blink-cursor-mode 1)			; Turn-off Cursor Blink (1 to Enable & 0 to Stop)
 
@@ -687,8 +722,11 @@ beginning of the line it stays there."
   (auto-package-update-hide-results t)
   :config
   (auto-package-update-maybe))
+;; Diminish a feature that removes certain minor-modes from mode-line.
+(use-package diminish)
 
-(use-package diminish) ; Diminish, a feature that removes certain minor modes from mode-line.
+;; Font lock of special Dash variables (it, acc, etc.). Comes default with Emacs.
+(global-dash-fontify-mode)
 
 (use-package delight
   :delight)
@@ -700,8 +738,17 @@ beginning of the line it stays there."
   ;; To disable collection of benchmark data after init is done.
   (add-hook 'after-init-hook 'benchmark-init/deactivate))
 
-(add-hook 'after-init-hook
-          (lambda () (message "loaded in %s" (emacs-init-time))))
+(use-package avy
+  :bind(("C-'" . 'avy-goto-char)
+        ("C-:" . 'avy-goto-char-2)
+        ("M-g g" . 'avy-goto-line)
+        ("M-g e" . 'avy-goto-word-0)
+        ("M-g w" . 'avy-goto-word-1)
+        ("C-c C-j" . 'avy-resume))
+  :config
+  (setq avy-timeout-seconds 0.5)
+  (setq avy-ignored-modes
+	    '(image-mode doc-view-mode pdf-view-mode exwm-mode)))
 
 (use-package uniquify-files
   :config
@@ -755,9 +802,19 @@ beginning of the line it stays there."
 
 (use-package all-the-icons
   :if (display-graphic-p))
-;;  :config (all-the-icons-install-fonts 'install-without-asking))
+
+;; :config (all-the-icons-install-fonts 'install-without-asking))
 ;; (cl-defun all-the-icons-faicon (icon &rest _)
-;;  #("" 0 1 (rear-nonsticky t display (raise -0.24) font-lock-face (:family "FontAwesome" :height 1.2) face (:family "FontAwesome" :height 1.2)))))
+;;   #("" 0 1 (rear-nonsticky t display (raise -0.24) font-lock-face (:family "FontAwesome" :height 1.2) face (:family "FontAwesome" :height 1.2)))))
+
+;; Nyan Cat is lovely, it can live on mode line
+(use-package nyan-mode
+  :init
+  (setq nyan-animate-nyancat t)
+  (setq nyan-wavy-trail t)
+  (setq nyan-minimum-window-width 80)
+  (setq nyan-bar-length 75)
+  (nyan-mode))
 
 (use-package which-key
   :init
@@ -766,7 +823,7 @@ beginning of the line it stays there."
         which-key-idle 0.5
         which-key-idle-dely 50)
   (which-key-setup-minibuffer))
-;  (which-key-setup-side-window-right)
+                                        ;  (which-key-setup-side-window-right)
 
 ;; Goto last change
 ;; Sometimes it's useful to step to the last changes in a buffer.
@@ -829,8 +886,7 @@ beginning of the line it stays there."
 (use-package beacon
   :init
   (beacon-mode t)
-  (setq beacon-color "#50D050") ;; a light green
-  )
+  (setq beacon-color "#50D050"))
 
 (use-package emojify
   :hook (erc-mode . emojify-mode)
@@ -845,146 +901,13 @@ beginning of the line it stays there."
   :config
   (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
 
-(use-package treemacs
-  :init
-  (setq treemacs-width 30
-        treemacs-indentation 2
-        treemacs-no-png-images nil
-        treemacs-max-git-entries 5000
-        treemacs-is-never-other-window nil
-        treemacs-silent-filewatch t
-        treemacs-follow-after-init t
-        treemacs-show-hidden-files t
-        treemacs-indentation-string
-        (propertize " " 'face 'fill-column-indicator)
-        treemacs-space-between-root-nodes nil
-        )
-
-  :config
-  (treemacs-resize-icons 16)
-  (treemacs-follow-mode t)
-  (treemacs-filewatch-mode t)
-  (treemacs-fringe-indicator-mode 'always)
-  :bind
-  (:map global-map
-        ("M-0"       . treemacs-select-window)
-        ("C-x t 1"   . treemacs-delete-other-windows)
-        ("C-x t t"   . treemacs)
-        ("C-x t d"   . treemacs-select-directory)
-        ("C-x t B"   . treemacs-bookmark)
-        ("C-x t C-t" . treemacs-find-file)
-        ("C-x t M-t" . treemacs-find-tag)))
-
-;; change mode-line color by evil state
-(lexical-let ((default-color (cons (face-background 'mode-line)
-                                   (face-foreground 'mode-line))))
-  (add-hook 'post-command-hook
-            (lambda ()
-              (let ((color (cond ((minibufferp) default-color)
-                                 ((evil-insert-state-p) '("#e80000" . "#ffffff"))
-                                 ((evil-emacs-state-p)  '("#444488" . "#ffffff"))
-                                 ((buffer-modified-p)   '("#006fa0" . "#ffffff"))
-                                 (t default-color))))
-                (set-face-background 'mode-line (car color))
-                (set-face-foreground 'mode-line (cdr color))))))
-(use-package evil
-  :bind
-  ("C-S-Z" . evil-mode)
-  :init
-  (setq evil-want-integration t
-        evil-want-keybinding nil
-        evil-want-C-u-scroll t
-        evil-want-C-w-delete t
-        evil-want-C-i-jump nil
-        evil-want-Y-yank-to-eol t
-        evil-normal-state-cursor 'box
-        evil-insert-state-cursor 'bar
-        evil-visual-state-cursor 'hollow
-        evil-undo-system 'undo-redo
-        )
-  :config
-  (evil-mode t)
-  (define-key evil-insert-state-map (kbd "C-e") 'end-of-line)
-  (define-key evil-motion-state-map (kbd "C-e") 'end-of-line)
-  (define-key evil-insert-state-map (kbd "C-a") 'beginning-of-line)
-  (define-key evil-motion-state-map (kbd "C-a") 'beginning-of-line)
-  (define-key evil-insert-state-map (kbd "C-d") 'delete-forward-char)
-  (define-key evil-normal-state-map (kbd "M-.") 'xref-find-definitions)
-  (define-key evil-motion-state-map (kbd "C-s") 'swiper)
-
-  (unbind-key "C-n" evil-insert-state-map)
-  (unbind-key "C-p" evil-insert-state-map))
-
-(use-package evil-surround
-  :config
-  (global-evil-surround-mode 1))
-
-(use-package evil-collection
-  :init
-  (setq evil-collection-company-use-tng nil)
-  :after evil
-  :config
-  (advice-add #'evil-collection-outline-setup :override #'ignore)
-  (evil-collection-init))
-
-(use-package key-chord
-  :config
-  (setq key-chord-two-keys-delay 0.2)
-  (key-chord-define evil-insert-state-map "jj" 'evil-normal-state)
-  (key-chord-define evil-normal-state-map "//" 'avy-goto-char)
-  (key-chord-mode 1))
-
-(use-package evil-leader
-  :config
-  (global-evil-leader-mode)
-  (evil-leader/set-leader ",")
-  (evil-leader/set-key
-    "f" 'counsel-find-file
-    "d" 'treemacs-select-window
-    "r" 'counsel-recentf
-    "b" 'ivy-switch-buffer
-    "k" 'kill-buffer
-    "v" 'vc-diff
-    ;; "l" 'flycheck-list-errors
-    "l" 'magit-log-buffer-file
-    "g" 'magit-status
-    "s" 'projectile-find-file
-    "," 'counsel-M-x
-    "o" 'myh/switch-to-header-or-source
-    "i" 'lsp-treemacs-symbols
-    "m" '(lambda () (interactive)
-	       (mu4e~headers-jump-to-maildir "/INBOX"))
-    "cc" '(lambda () (interactive)
-	        (if mark-active
-		        (comment-region (region-beginning)
-				                (region-end))
-	          (progn (comment-line 1)
-		             (previous-line))))
-    "cu" 'uncomment-region
-    "p" 'counsel-org-capture
-    "." 'avy-goto-char
-    "a" 'org-agenda))
-
-(use-package treemacs-evil
-  :after treemacs evil)
-
-(use-package treemacs-projectile
-  :after (treemacs projectile))
-
-(use-package treemacs-icons-dired
-  :hook (dired-mode . treemacs-icons-dired-enable-once))
-
-(use-package solaire-mode
-  :init (solaire-global-mode +1))
-
 (use-package doom-themes
   :config
   (setq doom-themes-enable-bold t 	 ; if nil, bold is universally disabled
         doom-themes-enable-italic t  ; if nil, italics is universally disabled
         doom-themes-treemacs-theme "doom-atom") ; doom-atom or use "doom-colors" for less minimal icon theme
-  (load-theme 'doom-gruvbox-light t)
-  (load-theme 'doom-dracula t)
   (load-theme 'doom-gruvbox t)
+  ;; (load-theme 'doom-zenburn t)
   (doom-themes-visual-bell-config)	 ; Enable flashing mode-line on errors
   (doom-themes-org-config)		  ; Corrects (and improves) org-mode's native fontification.
 
@@ -1035,18 +958,19 @@ beginning of the line it stays there."
   (ivy-mode t)
   (setq ivy-use-virtual-buffers t
         ;; Display index and count both.
-        ivy-count-format "(%d/%d) "
+        ivy-count-format " (%d/%d) "
         ;; By default, all ivy prompts start with `^'. Disable that.
         ivy-initial-inputs-alist nil)
 
   :bind (("C-x b" . ivy-switch-buffer)
          ("C-x B" . ivy-switch-buffer-other-window)
-         ("C-c C-r" . ivy-resume)
          ("<f6>" . ivy-resume)
-         ("C-c v" . ivy-push-view)
-  		 ("C-c V" . ivy-pop-view))
+  		 ("C-c v" . ivy-push-view)
+  		 ("C-c V" . ivy-pop-view)
+         ("C-c C-r" . ivy-resume))
   :delight)
-
+(use-package ivy-avy)
+(use-package ivy-hydra)
 (use-package ivy-rich
   :doc "Have additional information in empty space of ivy buffers."
   :custom
@@ -1059,20 +983,19 @@ beginning of the line it stays there."
 
 (use-package ivy-posframe
   :doc "Custom positions for ivy buffers."
+  :after ivy
+  :custom
+  (ivy-posframe-border-width 6)
   :config
   (when (member "Hasklig" (font-family-list))
     (setq ivy-posframe-parameters
           '((font . "Hasklig"))))
-
-  (setq ivy-posframe-border-width 10)
-
   (setq ivy-posframe-display-functions-alist
         '((complete-symbol . ivy-posframe-display-at-point)
           (swiper . ivy-display-function-fallback)
           (swiper-isearch . ivy-display-function-fallback)
           (counsel-rg . ivy-display-function-fallback)
           (t . ivy-posframe-display-at-frame-center)))
-
   (ivy-posframe-mode t)
   :delight)
 
@@ -1084,7 +1007,7 @@ beginning of the line it stays there."
 
 (use-package swiper
   :doc "A better search"
-  :bind (("C-s" . swiper)) ; ("C-s" . swiper-isearch))
+  :bind (("C-s" . swiper-isearch)) ; ("C-s" . swiper))
   :delight)
 
 ;; it looks like counsel is a requirement for swiper
@@ -1198,8 +1121,6 @@ beginning of the line it stays there."
         ("SPC"        . nil)    ; Prevent SPC from ever triggering a completion.
         ("M-n"        . nil)
         ("M-p"        . nil)
-        ("M-/"        . company-complete)
-        ("M-TAB"      . company-yasnippet)
         ("M-."        . company-show-location)
         ("M-<"        . company-select-first)
         ("M->"        . company-select-last)
@@ -1218,8 +1139,10 @@ beginning of the line it stays there."
         ("C-k"        . nil)
         ("C-n"        . nil)
         ("C-p"        . nil)
-        ("C-j"        . company-select-next-or-abort)
-        ("C-k"        . company-select-previous-or-abort)
+        ("M-/"        . company-complete)
+        ("M-TAB"      . company-yasnippet)
+        ("C-j"        . company-select-next)
+        ("C-k"        . company-select-previous)
         ("C-s"        . company-filter-candidates)
         ([escape]     . company-search-abort))
   :init
@@ -1238,33 +1161,46 @@ beginning of the line it stays there."
         company-tooltip-limit 10
         company-tooltip-align-annotations t
         company-tooltip-minimum company-tooltip-limit
+        company-begin-commands '(self-insert-command)
         company-require-match #'company-explicit-action-p
         company-frontends '(company-pseudo-tooltip-frontend)
-        company-transformers '(company-sort-prefer-same-case-prefix))
+        company-transformers '(company-sort-by-occurrence))
   :config
   (setq company-backends
-        '((company-capf
-           company-keywords
+        '((
+           company-files        ; files & directory
+           company-keywords     ; keywords
+           company-capf         ; what is this?
            company-semantic
-           company-files
            company-gtags
            company-etags
            company-rtags
            company-elisp
            company-ispell
            company-c-headers
-           ;; company-clang    ; it's too slow
+           ;; company-clang     ; it's too slow
            ;; company-irony-c-headers
            ;; company-irony
-           company-jedi
            company-cmake
            company-yasnippet
-           company-dabbrev
-           company-dabbrev-code))))
+           company-dabbrev-code)
+          (company-abbrev company-dabbrev))))
 ;; Use tab key to cycle through suggestions. ('tng' means 'tab and go')
                                         ; (company-tng-configure-default)
+;; (setq company-backends
+;;       '((
+;;          company-files        ; files & directory
+;;          company-keywords     ; keywords
+;;          company-capf         ; what is this?
+;;          company-yasnippet
+;;          company-dabbrev-code)
+;;         (company-abbrev company-dabbrev))))
 (use-package company-rtags)
 (use-package company-c-headers)
+
+;; Delete duplicates from company popups
+(setq-local company-transformers '(delete-dups)
+            company-backends '(company-files (:separate company-dabbrev company-ispell)))
 
 ;; (use-package irony
 ;;   :config
@@ -1299,17 +1235,11 @@ beginning of the line it stays there."
   :config (yasnippet-snippets-initialize))
 
 (use-package ivy-yasnippet :after yasnippet)
-(use-package react-snippets :after yasnippet)
 
 ;; (yas-reload-all)
 
 (add-hook 'prog-mode-hook #'yas-minor-mode)
-(setq yas-snippet-dirs
-      '("~/.emacs.d/snippets"                 ;; personal snippets
-                                        ;        "/path/to/some/collection/"           ;; foo-mode and bar-mode snippet collection
-                                        ;        "/path/to/yasnippet/yasmate/snippets" ;; the yasmate collection
-        ))
-
+(setq yas-snippet-dirs '("~/.emacs.d/etc/yasnippet/snippets"))
 ;; ─────────────────────────────────── C/C++ ─────────────────────────────────── ;;
 ;; (use-package flycheck-clang-analyzer
 ;;   :config
@@ -1317,7 +1247,69 @@ beginning of the line it stays there."
 ;;     (require 'flycheck-clang-analyzer)
 ;;      (flycheck-clang-analyzer-setup)))
 
-;; ──────────────────────────────────── Bash ─────────────────────────────────── ;;
+;; ──────────────────────────────────── SHELL ─────────────────────────────────── ;;
+
+(defun eshell-here ()
+  "Opens up a new shell in the directory associated with the
+current buffer's file.  The eshell is renamed to match that
+directory to make multiple eshell windows easier."
+  (interactive)
+  (let* ((parent (if (buffer-file-name)
+                     (file-name-directory (buffer-file-name))
+                   default-directory))
+         (height (/ (window-total-height) 3))
+         (name   (car (last (split-string parent "/" t)))))
+    (split-window-vertically (- height))
+    (other-window 1)
+    (eshell "new")
+    (rename-buffer (concat "*eshell: " name "*"))
+
+    (insert (concat "ls"))
+    (eshell-send-input)))
+
+(global-set-key (kbd "C-!") 'eshell-here)
+
+(defun eshell/x ()
+  "Cmnd `x' exits that shell and closes that window."
+  (insert "exit")
+  (eshell-send-input)
+  (delete-window))
+
+;;; Eshell
+;; https://www.masteringemacs.org/article/complete-guide-mastering-eshell Eshell is
+;; an elisp shell. It has its own configuration parameters, distinct from those of
+;; shell or ansi-terminal.
+;;;; Eshell Settings
+(setq eshell-directory-name (concat user-emacs-directory "etc/eshell")
+      eshell-history-file-name (concat user-emacs-directory "etc/eshell/history")
+      eshell-aliases-file (concat user-emacs-directory "etc/eshell/alias")
+      eshell-last-dir-ring-file-name (concat user-emacs-directory "etc/eshell/lastdir")
+      eshell-prefer-lisp-functions nil
+      eshell-highlight-prompt nil
+      eshell-buffer-shorthand t
+      eshell-cmpl-ignore-case t
+      eshell-history-size 10000
+      eshell-hist-ignoredups t
+      eshell-save-history-on-exit t
+      eshell-cmpl-cycle-completions t
+      eshell-destroy-buffer-when-process-dies t
+      ;; auto truncate after 20k lines
+      eshell-buffer-maximum-lines 20000
+      eshell-error-if-no-glob t
+      eshell-glob-case-insensitive t
+      eshell-scroll-to-bottom-on-input 'all
+      eshell-destroy-buffer-when-process-dies t
+      eshell-list-files-after-cd t
+      eshell-banner-message (message "Emacs initialized in %.2fs \n\n" (float-time (time-subtract (current-time) my-start-time))))
+
+;; Visual commands
+(setq eshell-visual-commands
+      '("ranger" "lfub" "vi" "screen" "top" "less" "more" "lynx"
+        "ncftp" "pine" "tin" "trn" "elm" "vim"
+        "nmtui" "alsamixer" "htop" "el" "elinks"
+        ))
+(setq eshell-visual-subcommands '(("git" "log" "diff" "show")))
+
 (add-hook 'shell-mode-hook 'yas-minor-mode)
 (add-hook 'shell-mode-hook 'flycheck-mode)
 (add-hook 'shell-mode-hook 'company-mode)
@@ -1340,28 +1332,6 @@ beginning of the line it stays there."
   (company-posframe-mode t))
 
 (use-package company-wordfreq)
-
-(use-package avy
-  :config
-  (setq avy-timeout-seconds 0.5)
-  (setq avy-ignored-modes
-	    '(image-mode doc-view-mode pdf-view-mode exwm-mode)))
-(global-set-key (kbd "C-'") 'avy-goto-char)
-(global-set-key (kbd "C-:") 'avy-goto-char-2)
-(global-set-key (kbd "M-g f") 'avy-goto-line)
-(global-set-key (kbd "M-g w") 'avy-goto-word-1)
-(global-set-key (kbd "M-g e") 'avy-goto-word-0)
-(global-set-key (kbd "C-c C-j") 'avy-resume)
-
-;; Nyan Cat is lovely, it can live on mode line
-(use-package nyan-mode
-  :init
-  (setq nyan-animate-nyancat t)
-  (setq nyan-wavy-trail t)
-  (setq nyan-minimum-window-width 80)
-  (setq nyan-bar-length 75)
-  (nyan-mode))
-
 ;; ──────────────────────────────── Basic Utils ──────────────────────────────── ;;
 ;; never want whitespace at the end of lines. Remove it on save.
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
@@ -1372,7 +1342,7 @@ beginning of the line it stays there."
 
 ;; ──────────── This snippet loads all *.el files in a directory ─────────── ;;
 (defun load-directory (dir)
-  "load all *.el from your .emacs.d directory."
+  "Load all *.el from your .emacs.d directory."
   (let ((load-it (lambda (f)
                    (load-file (concat (file-name-as-directory dir) f)))))
     (mapc load-it (directory-files dir nil "\\.el$"))))

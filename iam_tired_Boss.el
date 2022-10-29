@@ -1,194 +1,92 @@
-;;; .emacs --- Initialization file for Emacs
-
-;; Author: Likhon
-;; Maintainer: Likhon
-;; Version: version
-;; Package-Requires: (dependencies)
-;; Homepage: homepage
-;; Keywords: keywords
-
-;; This file is not part of GNU Emacs
-
-;; This file is free software; you can redistribute it and/or modify
-;; it under the terms of the GNU General Public License as published by
-;; the Free Software Foundation; either version 3, or (at your option)
-;; any later version.
-
-;; This program is distributed in the hope that it will be useful,
-;; but WITHOUT ANY WARRANTY; without even the implied warranty of
-;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;; GNU General Public License for more details.
-
-;; For a full copy of the GNU General Public License
-;; see <http://www.gnu.org/licenses/>.
-
-
+;;; init.el --- -*- lexical-binding: t -*-
+;;
+;; Filename: init.el
+;; Description: Initialize M-EMACS
+;; Author: Mingde (Matthew) Zeng
+;; Copyright (C) 2019 Mingde (Matthew) Zeng
+;; Created: Thu Mar 14 10:15:28 2019 (-0400)
+;; Version: 3.0
+;; URL: https://github.com/MatthewZMD/.emacs.d
+;; Keywords: M-EMACS .emacs.d init
+;; Compatibility: emacs-version >= 26.1
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;;; Commentary:
-
+;;
+;; This is the init.el file for M-EMACS
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;;; Code:
-;; Emacs as External Editor
 
 ;; Unset file-name-handler-alist temporarily. Then restore it later...
 (defvar doom--file-name-handler-alist file-name-handler-alist)
 (setq file-name-handler-alist nil)
 
-(use-package company-box
-  :hook (company-mode . company-box-mode))
-;; (set-face-background 'company-box--apply-color "#555555")
-(use-package company
-  :diminish company-mode
-  :hook
-  (after-init . global-company-mode)
-  :bind
-  (:map company-active-map
-        ("C-h"        . nil)
-        ("C-j"        . nil)
-        ("C-k"        . nil)
-        ("C-n"        . nil)
-        ("C-p"        . nil)
-        ("C-w"        . nil)
-        ("RET"        . nil)
-        ("<return>"   . nil)
-        ("SPC"        . nil)    ; Prevent SPC from ever triggering a completion.
-        ("M-n"        . nil)
-        ("M-p"        . nil)
-        ("M-."        . company-show-location)
-        ("M-<"        . company-select-first)
-        ("M->"        . company-select-last)
-        ("C-c C-/"    . company-other-backend)
-                                        ;        ("C-<return>"        . company-complete-selection)
-        ("C-l"        . company-complete-selection)
-        ("<tab>"      . company-indent-or-complete-common)
-        ("TAB"        . company-indent-or-complete-common)
-        ("C-j"        . company-select-next)
-        ("C-k"        . company-select-previous)
-        ("C-d"        . company-show-doc-buffer)
-        ("C-s"        . company-filter-candidates))
-  (:map company-search-map    ; applies to `company-filter-map' too
-        ("C-h"        . nil)
-        ("C-j"        . nil)
-        ("C-k"        . nil)
-        ("C-n"        . nil)
-        ("C-p"        . nil)
-        ("M-/"        . company-complete)
-        ("M-TAB"      . company-yasnippet)
-        ("C-j"        . company-select-next)
-        ("C-k"        . company-select-previous)
-        ("C-s"        . company-filter-candidates)
-        ([escape]     . company-search-abort))
-  :init
-  (setq company-idle-delay 0.0
-        company-echo-delay 0
-        completion-ignore-case t
-        company-require-match nil
-        company-show-quick-access t
-        company-selection-wrap-around t
-        company-minimum-prefix-length 1
-        company-dabbrev-code-modes t
-        company-dabbrev-code-everywhere t
-        company-dabbrev-ignore-case nil
-        company-debbrev-other-buffers 'all
-        company-dabbrev-downcase nil
-        company-tooltip-limit 10
-        company-tooltip-align-annotations t
-        company-tooltip-minimum company-tooltip-limit
-        company-begin-commands '(self-insert-command)
-        company-require-match #'company-explicit-action-p
-        company-frontends '(company-pseudo-tooltip-frontend)
-        company-transformers '(company-sort-by-occurrence))
-  :config
-  (setq company-backends
-        '((
-           company-files        ; files & directory
-           company-keywords     ; keywords
-           company-capf         ; what is this?
-           company-semantic
-           company-gtags
-           company-etags
-           company-rtags
-           company-elisp
-           company-ispell
-           company-c-headers
-           ;; company-clang     ; it's too slow
-           ;; company-irony-c-headers
-           ;; company-irony
-           company-cmake
-           company-yasnippet
-           company-dabbrev-code)
-          (company-abbrev company-dabbrev))))
-;; Use tab key to cycle through suggestions. ('tng' means 'tab and go')
-                                        ; (company-tng-configure-default)
-;; (setq company-backends
-;;       '((
-;;          company-files        ; files & directory
-;;          company-keywords     ; keywords
-;;          company-capf         ; what is this?
-;;          company-yasnippet
-;;          company-dabbrev-code)
-;;         (company-abbrev company-dabbrev))))
-(use-package company-rtags)
-(use-package company-c-headers)
+;; BetterGC
+(defvar better-gc-cons-threshold 134217728 ; 128mb
+  "If you experience freezing, decrease this.
+If you experience stuttering, increase this.")
 
-;; Delete duplicates from company popups
-(setq-local company-transformers '(delete-dups)
-            company-backends '(company-files (:separate company-dabbrev company-ispell)))
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq gc-cons-threshold better-gc-cons-threshold)
+            (setq file-name-handler-alist file-name-handler-alist-original)
+            (makunbound 'file-name-handler-alist-original)))
+;; -BetterGC
 
-;; (use-package irony
-;;   :config
-;;   (add-hook 'c++-mode-hook 'irony-mode)
-;;   (add-hook 'c-mode-hook 'irony-mode)
-;;   (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
+;; AutoGC
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (if (boundp 'after-focus-change-function)
+                (add-function :after after-focus-change-function
+                              (lambda ()
+                                (unless (frame-focus-state)
+                                  (garbage-collect))))
+              (add-hook 'after-focus-change-function 'garbage-collect))
+            (defun gc-minibuffer-setup-hook ()
+              (setq gc-cons-threshold (* better-gc-cons-threshold 2)))
 
-(use-package company-quickhelp
-  :after company
-  :config
-  (setq company-quickhelp-idle-delay 0.0)
-  (company-quickhelp-mode 1))
+            (defun gc-minibuffer-exit-hook ()
+              (garbage-collect)
+              (setq gc-cons-threshold better-gc-cons-threshold))
 
-;; This package adds usage-based sorting to Company
-;; completions. (Perhaps it too can be replaced by `historian' one day!)
-(use-package company-statistics
-  :after company
-  :config
-  (company-statistics-mode))
+            (add-hook 'minibuffer-setup-hook #'gc-minibuffer-setup-hook)
+            (add-hook 'minibuffer-exit-hook #'gc-minibuffer-exit-hook)))
+;; -AutoGC
 
-(use-package yasnippet
-  :delight yas-minor-mode " υ"
-  :hook (yas-minor-mode . my/disable-yas-if-no-snippets)
-  :config (yas-global-mode)
-  :preface
-  (defun my/disable-yas-if-no-snippets ()
-    (when (and yas-minor-mode (null (yas--get-snippet-tables)))
-      (yas-minor-mode -1))))
+;;Load Path
+;; Since all the configuration files are stored in a folder, they need to be added to `load-path' now.
+(defun update-to-load-path (folder)
+  "Update FOLDER and its subdirectories to `load-path'."
+  (let ((base folder))
+    (unless (member base load-path)
+      (add-to-list 'load-path base))
+    (dolist (f (directory-files base))
+      (let ((name (concat base "/" f)))
+        (when (and (file-directory-p name)
+                   (not (equal f ".."))
+                   (not (equal f ".")))
+          (unless (member base load-path)
+            (add-to-list 'load-path name)))))))
 
-(use-package yasnippet-snippets
-  :after yasnippet
-  :config (yasnippet-snippets-initialize))
-;; (use-package yasnippet
-;;   ;; :ensure t
-;;   ;; :functions hydra-yasnippet
-;;   ;; :bind ("M-i y" . hydra-yasnippet/body)
-;;   :custom (yas-snippet-dirs '("~/.emacs.d/etc/yasnippet/snippets"))
-;;   :hook
-;;   ((prog-mode minibuffer-inactive-mode org-mode) . yas-minor-mode)
-;;   :commands yas-reload-all
-;;   )
-;; :config
-;; (with-eval-after-load 'hydra
-;;   (defhydra hydra-yasnippet (:hint nil)
-;;     "
-;;                            [_n_] New snippet
-;;                            [_v_] Visit File
-;;                            [_t_] Describe on table
-;;                            [_q_] Quit
-;;     "
-;;     ("n" yas-new-snippet)
-;;     ("v" yas-visit-snippet-file)
-;;     ("t" yas-describe-tables)
-;;     ("q" nil))))
-
-(add-hook 'prog-mode-hook #'yas-minor-mode)
-(setq yas-snippet-dirs '("~/.emacs.d/etc/yasnippet/snippets"))
+(update-to-load-path (expand-file-name "elpa" user-emacs-directory))
 
 ;; Config Edit/Re-load
 (defun config-visit ()
@@ -429,6 +327,138 @@
 ;; (require 'auto-complete)
 ;; (global-auto-complete-mode t)
 ;; (setq ac-modes '(sh-mode lisp-mode c-mode c++-mode sql-mode html-mode)) ; you can specified only for some certain mode
+
+(use-package company-box
+  :hook (company-mode . company-box-mode))
+;; (set-face-background 'company-box--apply-color "#555555")
+(use-package company
+  :diminish company-mode
+  :hook
+  (after-init . global-company-mode)
+  :bind
+  (:map company-active-map
+        ("C-h"        . nil)
+        ("C-j"        . nil)
+        ("C-k"        . nil)
+        ("C-n"        . nil)
+        ("C-p"        . nil)
+        ("C-w"        . nil)
+        ("RET"        . nil)
+        ("<return>"   . nil)
+        ("SPC"        . nil)    ; Prevent SPC from ever triggering a completion.
+        ("M-n"        . nil)
+        ("M-p"        . nil)
+        ("M-."        . company-show-location)
+        ("M-<"        . company-select-first)
+        ("M->"        . company-select-last)
+        ("C-c C-/"    . company-other-backend)
+        ("C-<return>" . company-complete-selection)
+        ("C-l"        . company-complete-selection)
+        ("<tab>"      . company-indent-or-complete-common)
+        ("TAB"        . company-indent-or-complete-common)
+        ("C-j"        . company-select-next)
+        ("C-k"        . company-select-previous)
+        ("C-d"        . company-show-doc-buffer)
+        ("C-s"        . company-filter-candidates))
+  (:map company-search-map    ; applies to `company-filter-map' too
+        ("C-h"        . nil)
+        ("C-j"        . nil)
+        ("C-k"        . nil)
+        ("C-n"        . nil)
+        ("C-p"        . nil)
+        ("M-/"        . company-complete)
+        ("M-TAB"      . company-yasnippet)
+        ("C-j"        . company-select-next)
+        ("C-k"        . company-select-previous)
+        ("C-s"        . company-filter-candidates)
+        ([escape]     . company-search-abort))
+  :init
+  (setq company-idle-delay 0.0
+        company-echo-delay 0
+        completion-ignore-case t
+        company-require-match nil
+        company-show-quick-access t
+        company-selection-wrap-around t
+        company-minimum-prefix-length 1
+        company-dabbrev-code-modes t
+        company-dabbrev-code-everywhere t
+        company-dabbrev-ignore-case nil
+        company-debbrev-other-buffers 'all
+        company-dabbrev-downcase nil
+        company-tooltip-limit 10
+        company-tooltip-align-annotations t
+        company-tooltip-minimum company-tooltip-limit
+        company-begin-commands '(self-insert-command)
+        company-require-match #'company-explicit-action-p
+        company-frontends '(company-pseudo-tooltip-frontend)
+        company-transformers '(company-sort-by-occurrence))
+  :config
+  (setq company-backends
+        '((
+           company-files        ; files & directory
+           company-keywords     ; keywords
+           company-capf         ; what is this?
+           company-semantic
+           company-gtags
+           company-etags
+           company-rtags
+           company-elisp
+           company-ispell
+           company-c-headers
+           ;; company-clang     ; it's too slow
+           ;; company-irony-c-headers
+           ;; company-irony
+           company-cmake
+           company-yasnippet
+           company-dabbrev-code)
+          (company-abbrev company-dabbrev))))
+;; Use tab key to cycle through suggestions. ('tng' means 'tab and go')
+                                        ; (company-tng-configure-default)
+;; (setq company-backends
+;;       '((
+;;          company-files        ; files & directory
+;;          company-keywords     ; keywords
+;;          company-capf         ; what is this?
+;;          company-yasnippet
+;;          company-dabbrev-code)
+;;         (company-abbrev company-dabbrev))))
+(use-package company-rtags)
+(use-package company-c-headers)
+
+;; Delete duplicates from company popups
+(setq-local company-transformers '(delete-dups)
+            company-backends '(company-files (:separate company-dabbrev company-ispell)))
+
+;; (use-package irony
+;;   :config
+;;   (add-hook 'c++-mode-hook 'irony-mode)
+;;   (add-hook 'c-mode-hook 'irony-mode)
+;;   (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
+
+(use-package company-quickhelp
+  :after company
+  :config
+  (setq company-quickhelp-idle-delay 0.0)
+  (company-quickhelp-mode 1))
+
+;; This package adds usage-based sorting to Company
+;; completions. (Perhaps it too can be replaced by `historian' one day!)
+(use-package company-statistics
+  :after company
+  :config
+  (company-statistics-mode))
+
+(use-package yasnippet
+  :delight yas-minor-mode " υ"
+  :custom (yas-snippet-dirs '("~/.emacs.d/etc/yasnippet/snippets"))
+  :commands yas-reload-all
+  :hook ((prog-mode minibuffer-inactive-mode org-mode) . yas-minor-mode)
+  :config (yas-global-mode))
+
+(use-package yasnippet-snippets
+  :after yasnippet
+  :config (yasnippet-snippets-initialize))
+
 (use-package ibuffer
   ;; :doc "Better buffer management"
   :bind ("C-x C-b" . ibuffer)
@@ -448,17 +478,13 @@
                          (name . "^\\*scratch\\*$")
                          (name . "^\\*Messages\\*$")))
                ))))
-
 (add-hook 'ibuffer-mode-hook
           (lambda ()
             (ibuffer-auto-mode 1)
             (ibuffer-switch-to-saved-filter-groups "default")))
 
-;; don't show these
-;;(add-to-list 'ibuffer-never-show-predicates "zowie")
 ;; Don't show filter groups if there are no buffers in that group
 (setq ibuffer-show-empty-filter-groups nil)
-
 ;; Don't ask for confirmation to delete marked buffers
 (setq ibuffer-expert t)
 
@@ -475,7 +501,7 @@
 
 (use-package emmet-mode
   :after(web-mode css-mode scss-mode)
-  :commands (emmet-mode emmet-expand-line yas/insert-snippet yas-insert-snippet company-complete)
+  :commands (emmet-mode emmet-expand-line yas-insert-snippet company-complete)
   :config
   (setq emmet-move-cursor-between-quotes t)
   (add-hook 'emmet-mode-hook (lambda () (setq emmet-indent-after-insert nil)))
@@ -914,29 +940,7 @@ If it is at the beginning of the line it stays there."
          '(85 . 50) '(100 . 100)))))
 (global-set-key (kbd "C-c t") 'toggle-transparency)
 
-;;don't highlight the end of long lines
-(setq whitespace-line-column 99999)
-
-(setq hi-lock-file-patterns-policy #'(lambda (dummy) t))
-
 ;; ────────────────────────────── Generic packages ─────────────────────────────
-;;Load Path
-;; Since all the configuration files are stored in a folder, they need to be added to `load-path' now.
-(defun update-to-load-path (folder)
-  "Update FOLDER and its subdirectories to `load-path'."
-  (let ((base folder))
-    (unless (member base load-path)
-      (add-to-list 'load-path base))
-    (dolist (f (directory-files base))
-      (let ((name (concat base "/" f)))
-        (when (and (file-directory-p name)
-                   (not (equal f ".."))
-                   (not (equal f ".")))
-          (unless (member base load-path)
-            (add-to-list 'load-path name)))))))
-
-(update-to-load-path (expand-file-name "elpa" user-emacs-directory))
-
 
 ;; in ~/.emacs.d/init.el (or ~/.emacs.d/early-init.el in Emacs 27)
 (setq package-enable-at-startup nil ; don't auto-initialize!
@@ -1553,8 +1557,17 @@ Renamed to match that directory to make multiple eshell windows easier."
 (add-hook 'emacs-startup-hook
           (lambda ()
             (setq file-name-handler-alist doom--file-name-handler-alist)))
+
+
+;; InitPrivate
+;; Load init-private.el if it exists
+(when (file-exists-p (expand-file-name "init-private.el" user-emacs-directory))
+  (load-file (expand-file-name "init-private.el" user-emacs-directory)))
+;; -InitPrivate
+
 ;;; Finish up
 (provide '.emacs)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; .emacs ends here
 ;; Local Variables:
 ;; byte-compile-warnings: (not free-vars)

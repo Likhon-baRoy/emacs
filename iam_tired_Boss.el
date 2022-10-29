@@ -103,9 +103,19 @@ If you experience stuttering, increase this.")
 
 ;; A dashboard on startup can clean my mind
 (use-package dashboard
-  :diminish (dashboard-mode page-break-lines-mode)
+  :demand t
+  :init
+  (add-hook 'dashboard-mode-hook (lambda () (setq show-trailing-whitespace nil)))
+  :custom
+  (dashboard-set-navigator t)
+  (dashboard-center-content t)
+  (dashboard-set-file-icons t)
+  (dashboard-set-heading-icons t)
+  (dashboard-image-banner-max-height 160)
+  (dashboard-banner-logo-title "[Ποσειδον 🔱 εδιτορ]")
+  (dashboard-footer-messages '("EXPLOOOOOOOOOOSIONNN!"))
+  (dashboard-startup-banner (concat user-emacs-directory "logos/emacs.png"))
   :config
-  (setq dashboard-footer "Time teaches all things.")
   (setq dashboard-footer-icon (all-the-icons-octicon "calendar"
                                                      :height 1.1
                                                      :v-adjust -0.05
@@ -113,37 +123,49 @@ If you experience stuttering, increase this.")
 
   (setq dashboard-navigator-buttons
         `(;; line1
-          ((,(all-the-icons-octicon "mark-github" :height 1.1 :v-adjust 0.0)
+          ((,(all-the-icons-octicon "octoface" :height 1.1 :v-adjust 0.0)
             "Homepage"
             "Browse homepage"
-            (lambda (&rest _) (browse-url "homepage")))
-           ("★" "Star" "Show stars" (lambda (&rest _) (show-stars)) warning)
-           ("?" "" "?/h" #'show-help nil "<" ">"))
+            (lambda (&rest _) (browse-url "https://github.com/Likhon-baRoy/emacs")) nil "" " |")
+           (,(all-the-icons-faicon "refresh" :height 1.1 :v-adjust 0.0)
+            "Update"
+            "Update Megumacs"
+            (lambda (&rest _) (update-packages)) warning "" " |")
+           (,(all-the-icons-faicon "flag" :height 1.1 :v-adjust 0.0) nil
+            "Report a BUG"
+            (lambda (&rest _) (browse-url "https://github.com/b-coimbra/.emacs.d/issues/new")) error "" ""))
           ;; line 2
-          ((,(all-the-icons-faicon "linkedin" :height 1.1 :v-adjust 0.0)
-            "Linkedin"
-            ""
-            (lambda (&rest _) (browse-url "homepage")))
-           ("⚑" nil "Show flags" (lambda (&rest _) (message "flag")) error))))
+          ((,(all-the-icons-octicon "mark-github" :height 1.1 :v-adjust 0.0)
+            "AlienFriend"
+            "Browse Alien Page"
+            (lambda (&rest _) (browse-url "https://github.com/b-coimbra/.emacs.d")) nil "" ""))
+          ;; Empty line
+          (("" "\n" "" nil nil "" ""))
+
+          ;; Keybindings
+          ((,(all-the-icons-octicon "search" :height 0.9 :v-adjust -0.1)
+            " Find file" nil
+            (lambda (&rest _) (counsel-find-file)) nil "" "            C-x C-f"))
+          ((,(all-the-icons-octicon "file-directory" :height 1.0 :v-adjust -0.1)
+            " Open project" nil
+            (lambda (&rest _) (counsel-projectile-switch-project)) nil "" "         C-x p d"))
+          ((,(all-the-icons-octicon "three-bars" :height 1.1 :v-adjust -0.1)
+            " File explorer" nil
+            (lambda (&rest _) (counsel-projectile-switch-project)) nil "" "        C-x p D"))
+          ((,(all-the-icons-octicon "settings" :height 0.9 :v-adjust -0.1)
+            " Open settings" nil
+            (lambda (&rest _) (open-config-file)) nil "" "        C-c e  "))))
+
   (setq dashboard-projects-backend 'project-el
-        dashboard-startup-banner (concat user-emacs-directory "logos/emacs.png")
-        dashboard-image-banner-max-height 160
-        dashboard-banner-logo-title "Ποσειδον 🔱 εδιτορ"
-        dashboard-set-heading-icons t
-        dashboard-set-file-icons t
-        dashboard-show-shortcuts nil
-        dashboard-center-content t
-        dashboard-set-navigator t
         dashboard-set-init-info t
         dashboard-projects-switch-function 'counsel-projectile-switch-project-by-name
-
         dashboard-items '((recents        . 5)
                           (projects       . 5)
                           (bookmarks      . 5)
                           (agenda         . 5)
                           (registers      . 5)))
   :custom-face
-  (dashboard-heading ((t (:foreground "#f1fa8c" :weight bold))))
+  (dashboard-heading ((t (:weight bold)))) ; :foreground "#f1fa8c"
   :hook
   (after-init . dashboard-setup-startup-hook))
 
@@ -403,9 +425,9 @@ If you experience stuttering, increase this.")
            company-etags
            company-rtags
            company-elisp
-           company-ispell
            company-c-headers
            ;; company-clang     ; it's too slow
+           ;; company-ispell
            ;; company-irony-c-headers
            ;; company-irony
            company-cmake
@@ -628,15 +650,6 @@ If you experience stuttering, increase this.")
   (set-fontset-font t 'symbol (font-spec :family "Noto Color Emoji") nil 'prepend)
   (set-fontset-font "fontset-default" '(#xFE00 . #xFE0F) "Noto Color Emoji"))
 ;;________________________________________________________________
-;;    Balancing Parentheses
-;;________________________________________________________________
-(electric-pair-mode 1)			    ; auto close bracket insertion
-;; make electric-pair-mode work on more brackets
-;; (setq electric-pair-pairs
-;;       '(
-;;         (?\" . ?\")
-;;         (?\{ . ?\})))
-;;________________________________________________________________
 ;;    Editing Related
 ;;________________________________________________________________
 (delete-selection-mode t)		; By default emacs will not delete selection text when typing on it, let's fix it
@@ -755,8 +768,6 @@ If it is at the beginning of the line it stays there."
 
 ;; General better defaults:
 (setq-default
- global-auto-revert-mode t
- global-auto-revert-non-file-buffers t		; Revert Dired and other buffers
  ad-redefinition-action 'accept                   ; Silence warnings for redefinition
  confirm-kill-emacs 'yes-or-no-p                  ; Confirm before exiting Emacs
  cursor-in-non-selected-windows nil               ; Hide the cursor in inactive windows
@@ -774,7 +785,6 @@ If it is at the beginning of the line it stays there."
  auto-save-default t               ; auto-save every buffer that visits a file
  auto-save-timeout 30              ; number of seconds idle time before auto-save (default: 30)
  auto-save-interval 200            ; number of keystrokes between auto-saves (default: 300)
- global-subword-mode 1             ; Iterate through CamelCase words
  compilation-always-kill t         ; kill compilation process before starting another
  compilation-ask-about-save nil    ; save all buffers on `compile'
  compilation-scroll-output t
@@ -795,8 +805,19 @@ If it is at the beginning of the line it stays there."
  enable-recursive-minibuffers t    ; allow commands to be run on minibuffers.
  backward-delete-char-untabify-method 'hungry ; Alternatives is: 'all (remove all consecutive whitespace characters, even newlines)
  )
-(show-paren-mode t)                   ; Highlight parenthesis pairs
-(save-place-mode t)
+(save-place-mode 1)
+(show-paren-mode 1)         ; Highlight matching parenthesis
+(global-auto-revert-mode 1) ; Automatically revert a buffer when it changes on disk
+(fringe-mode '(8 . 0))      ; Enable fringe on the left for git-gutter-fringe+
+(global-subword-mode 1)     ; Iterate through CamelCase words
+(electric-pair-mode t)      ; Enable Matching delimeters
+(electric-indent-mode nil)  ; Auto indentation
+;; make electric-pair-mode work on more brackets
+;; (setq electric-pair-pairs
+;;       '(
+;;         (?\" . ?\")
+;;         (?\{ . ?\})))
+
 ;; Get rid of "For information about GNU Emacs..." message at startup, unless
 ;; we're in a daemon session where it'll say "Starting Emacs daemon." instead,
 ;; which isn't so bad.
@@ -947,8 +968,6 @@ If it is at the beginning of the line it stays there."
       ;; don't add that `custom-set-variables' block to my init.el!
       package--init-file-ensured t)
 
-(require 'package)
-
 ;; Select the folder to store packages
 ;; Comment / Uncomment to use desired sites
 (setq package-user-dir (expand-file-name "elpa" user-emacs-directory)
@@ -975,6 +994,7 @@ If it is at the beginning of the line it stays there."
 ;; git submodule init
 ;; git submodule update
 
+(require 'package)
 ;; Configure Package Manager
 (unless (bound-and-true-p package--initialized)
   (setq package-enable-at-startup nil)          ; To prevent initializing twice
@@ -1019,6 +1039,16 @@ If it is at the beginning of the line it stays there."
 
     ;; just process the next keywords
     (use-package-process-keywords name-symbol rest state)))
+
+;; github.com/doomemacs/doomemacs/blob/develop/core/core.el#L296
+(use-package gcmh
+  :init (gcmh-mode 1)
+  :config
+  (setq
+   gcmh-idle-delay 'auto  ; default is 15s
+   gcmh-auto-idle-delay-factor 10
+   gcmh-high-cons-threshold (* 16 1024 1024))  ; 16mb
+  )
 
 (use-package auto-package-update
   :if (not (daemonp))
@@ -1218,15 +1248,10 @@ If it is at the beginning of the line it stays there."
   :config
   (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
 
-;; github.com/doomemacs/doomemacs/blob/develop/core/core.el#L296
-(use-package gcmh
-  :init (gcmh-mode 1)
+(use-package solaire-mode
+  :custom (solaire-mode-remap-fringe t)
   :config
-  (setq
-   gcmh-idle-delay 'auto  ; default is 15s
-   gcmh-auto-idle-delay-factor 10
-   gcmh-high-cons-threshold (* 16 1024 1024))  ; 16mb
-  )
+  (solaire-global-mode +1))
 
 (setq custom-safe-themes t)
 (use-package doom-themes

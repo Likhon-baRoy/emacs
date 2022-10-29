@@ -185,28 +185,8 @@ If you experience stuttering, increase this.")
 (setq org-latex-inputenc-alist '(("utf8" . "utf8x")))
 (when window-system (global-prettify-symbols-mode t))
 
-(defun add-pretty-lambda ()
-  "Make some word or string show as pretty Unicode symbols.  See https://unicodelookup.com for more."
-  (setq prettify-symbols-alist
-        '(("lambda" . 955)
-          ("delta" . 120517)
-          ("epsilon" . 120518)
-          ("<" . 10216)
-          (">" . 10217)
-          ("[" . 10214)
-          ("]" . 10215)
-          ("!=" . 8800)
-          (">>" . 10218)
-          ("<<" . 10219)
-          ("->" . 8594)
-          ("<=" . 10878)
-          (">=" . 10877))))
-
-(add-hook 'prog-mode-hook 'add-pretty-lambda)
-(add-hook 'org-mode-hook 'add-pretty-lambda)
 (use-package org
-  :init
-  (setq org-startup-folded t)
+  :init (setq org-startup-folded t)
   :config
   (setq org-ellipsis " ▾") ;; ↴, ▼, ▶, ⤵, ▾
   (org-indent-mode)
@@ -215,14 +195,35 @@ If you experience stuttering, increase this.")
   (visual-line-mode 1))
 
 ;; Improve org mode looks
-(setq org-roam-v2-ack t                 ; anonying startup message
-      org-startup-indented t
-      org-pretty-entities t
-      org-hide-emphasis-markers t
-      org-startup-with-inline-images t
-      org-image-actual-width '(300)
-      org-log-done 'time                ; I need to know when a task is done
-      )
+(setq
+ org-roam-v2-ack t                 ; anonying startup message
+ org-log-done 'time                ; I need to know when a task is done
+ org-odd-levels-only t
+ org-pretty-entities t
+ org-startup-indented t
+ org-adapt-indentation t
+ org-hide-leading-stars t
+ org-hide-macro-markers t
+ org-hide-emphasis-markers t
+ org-startup-with-inline-images t
+ org-image-actual-width '(300))
+
+;; ORG-TODO
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "DOING(d!)"  "MAYBE(m)"  "BLOCKED(b@)"  "DONE(d)" "READ(r)" "ARCHIVED(a!)" "INPROGRESS(i)" "WAITING(w)" "REVIEW(r)" "|" "CANCELED(c)")))
+
+(setq org-todo-keyword-faces
+      '(("CANCELED" . (:foreground "red" :weight bold))
+        ("DOING"    . (:foreground "salmon" :weight bold))
+        ("REVIEW"   . (:foreground "orange" :weight bold))
+        ("WAITING"  . (:foreground "purple" :weight bold))
+        ("TODO"     . (:foreground "HotPink3" :weight bold))
+        ("BLOCKED"  . (:foreground "DeepPink" :weight bold))
+        ("DONE"     . (:foreground "SeaGreen3" :weight bold))
+        ("READ"     . (:foreground "SteelBlue2" :weight bold))
+        ("ARCHIVED" . (:foreground "LightSlateGrey" :weight bold))
+        ("MAYBE"    . (:foreground "LightSteelBlue4" :weight bold))
+        ("INPROGRESS" . (:foreground "yellow" :weight bold))))
 
 (require 'org-tempo)
 
@@ -294,7 +295,6 @@ If you experience stuttering, increase this.")
                   (":logbook:" . ?)))))
 (add-hook 'org-mode-hook #'my/org-mode/load-prettify-symbols)
 
-;; (setq-default prettify-symbols-alist '(("#+BEGIN_SRC" . "»") ("#+END_SRC" . "«")("#+begin_src" . "»") ("#+end_src" . "«") ("lambda"  . "λ") ("->" . "→")))
 ;; Exported html should have no default style. I can style it myself:
 (setq org-html-head-include-default-style nil
       org-html-htmlize-output-type 'css)
@@ -305,18 +305,28 @@ If you experience stuttering, increase this.")
  '((emacs-lisp . t)
    (js .t )
    (shell . t)))
-(setq org-todo-keywords
-      '((sequence "TODO(t)" "INPROGRESS(i)" "WAITING(w)" "REVIEW(r)" "|" "DONE(d)" "CANCELED(c)")))
 
-(setq org-todo-keyword-faces
-      '(("TODO" . org-warning)
-        ("INPROGRESS" . "yellow")
-        ("WAITING" . "purple")
-        ("REVIEW" . "orange")
-        ("DONE" . "green")
-        ("CANCELED" .  "red")))
-;; ###----startup performance----###
+(defun add-pretty-lambda ()
+  "Make some word or string show as pretty Unicode symbols.  See https://unicodelookup.com for more."
+  (setq prettify-symbols-alist
+        '(("lambda" . 955)
+          ("delta" . 120517)
+          ("epsilon" . 120518)
+          ("<" . 10216)
+          (">" . 10217)
+          ("[" . 10214)
+          ("]" . 10215)
+          ("!=" . 8800)
+          (">>" . 10218)
+          ("<<" . 10219)
+          ("->" . 8594)
+          ("<=" . 10878)
+          (">=" . 10877))))
 
+(add-hook 'prog-mode-hook 'add-pretty-lambda)
+(add-hook 'org-mode-hook 'add-pretty-lambda)
+
+;; ──────────────────────────── Startup Performance ────────────────────────────
 ;; make startup faster by reducing the frequency of garbage collection and then use a hook to measure Emacs startup time.
 ;; The default is 800 kilobytes.  Measured in bytes.
 ;; Garbage collection off during initialization (focus all memory on initialize)

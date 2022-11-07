@@ -1,12 +1,141 @@
-(global-unset-key (kbd "<escape>"))
-(global-set-key (kbd "<escape>") (kbd "C-g"))
+;;; init.el --- -*- lexical-binding: t -*-
+;;
+;; Filename: init.el
+;; Description: Initialize M-EMACS
+;; Author: Mingde (Matthew) Zeng
+;; Copyright (C) 2019 Mingde (Matthew) Zeng
+;; Created: Thu Mar 14 10:15:28 2019 (-0400)
+;; Version: 3.0
+;; URL: https://github.com/MatthewZMD/.emacs.d
+;; Keywords: M-EMACS .emacs.d init
+;; Compatibility: emacs-version >= 26.1
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Commentary:
+;;
+;; This is the init.el file for M-EMACS
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; This program is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or (at
+;; your option) any later version.
+;;
+;; This program is distributed in the hope that it will be useful, but
+;; WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+;; General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;;; Code:
 
+;; Unset file-name-handler-alist temporarily. Then restore it later...
+(defvar doom--file-name-handler-alist file-name-handler-alist)
+(setq file-name-handler-alist nil)
+
+;; BetterGC
+(defvar better-gc-cons-threshold 134217728 ; 128mb
+  "If you experience freezing, decrease this.
+If you experience stuttering, increase this.")
+
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq gc-cons-threshold better-gc-cons-threshold)
+            (setq file-name-handler-alist file-name-handler-alist-original)
+            (makunbound 'file-name-handler-alist-original)))
+;; -BetterGC
+
+;; AutoGC
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (if (boundp 'after-focus-change-function)
+                (add-function :after after-focus-change-function
+                              (lambda ()
+                                (unless (frame-focus-state)
+                                  (garbage-collect))))
+              (add-hook 'after-focus-change-function 'garbage-collect))
+            (defun gc-minibuffer-setup-hook ()
+              (setq gc-cons-threshold (* better-gc-cons-threshold 2)))
+
+            (defun gc-minibuffer-exit-hook ()
+              (garbage-collect)
+              (setq gc-cons-threshold better-gc-cons-threshold))
+
+            (add-hook 'minibuffer-setup-hook #'gc-minibuffer-setup-hook)
+            (add-hook 'minibuffer-exit-hook #'gc-minibuffer-exit-hook)))
+;; -AutoGC
+
+;;Load Path
+;; Since all the configuration files are stored in a folder, they need to be added to `load-path' now.
+(defun update-to-load-path (folder)
+  "Update FOLDER and its subdirectories to `load-path'."
+  (let ((base folder))
+    (unless (member base load-path)
+      (add-to-list 'load-path base))
+    (dolist (f (directory-files base))
+      (let ((name (concat base "/" f)))
+        (when (and (file-directory-p name)
+                   (not (equal f ".."))
+                   (not (equal f ".")))
+          (unless (member base load-path)
+            (add-to-list 'load-path name)))))))
+
+(update-to-load-path (expand-file-name "elpa" user-emacs-directory))
+
+;; Config Edit/Re-load
+(defun config-visit ()
+  "Uncle dev created a function to find Emacs config."
+  (interactive)
+  (find-file "~/.emacs.d/init.el"))
+(global-set-key (kbd "C-c e") 'config-visit)
+
+(defun config-reload ()
+  "Uncle dev created a function to reload Emacs config."
+  (interactive)
+  (load-file (expand-file-name "~/.emacs.d/init.el")))
+(global-set-key (kbd "C-c r") 'config-reload)
+
+(defun switch-theme (theme)
+  "Disable any currently active themes and load THEME."
+  ;; This interactive call is taken from `load-theme'
+  (interactive
+   (list
+    (intern (completing-read "Load custom theme: "
+                             (mapc 'symbol-name
+                                   (custom-available-themes))))))
+  (let ((enabled-themes custom-enabled-themes))
+    (mapc #'disable-theme custom-enabled-themes)
+    (load-theme theme t)))
+
+(defun disable-active-themes ()
+  "Disable any currently active themes listed in `custom-enabled-themes'."
+  (interactive)
+  (mapc #'disable-theme custom-enabled-themes))
+
+(global-set-key (kbd "C-c T") 'switch-theme)
+
+
+;; ───────────────────────────────── DASHBOARD ─────────────────────────────────
 ;; A dashboard on startup can clean my mind
 (use-package dashboard
-  :ensure t
-  :diminish (dashboard-mode page-break-lines-mode)
+  :demand t
+  :init
+  (add-hook 'dashboard-mode-hook (lambda () (setq show-trailing-whitespace nil)))
+  :custom
+  (dashboard-set-navigator t)
+  (dashboard-center-content t)
+  (dashboard-set-file-icons t)
+  (dashboard-set-heading-icons t)
+  (dashboard-image-banner-max-height 150)
+  (dashboard-banner-logo-title "[Ποσειδον 🔱 εδιτορ]")
+  (dashboard-startup-banner (concat user-emacs-directory "logos/emacs_and_pen.png"))
   :config
-  (setq dashboard-footer "Time teaches all things.")
   (setq dashboard-footer-icon (all-the-icons-octicon "calendar"
                                                      :height 1.1
                                                      :v-adjust -0.05
@@ -14,88 +143,176 @@
 
   (setq dashboard-navigator-buttons
         `(;; line1
-          ((,(all-the-icons-octicon "mark-github" :height 1.1 :v-adjust 0.0)
+          ((,(all-the-icons-octicon "octoface" :height 1.1 :v-adjust 0.0)
             "Homepage"
             "Browse homepage"
-            (lambda (&rest _) (browse-url "homepage")))
-           ("★" "Star" "Show stars" (lambda (&rest _) (show-stars)) warning)
-           ("?" "" "?/h" #'show-help nil "<" ">"))
+            (lambda (&rest _) (browse-url "https://github.com/Likhon-baRoy/emacs")) nil "" " |")
+           (,(all-the-icons-faicon "refresh" :height 1.1 :v-adjust 0.0)
+            "Update"
+            "Update Megumacs"
+            (lambda (&rest _) (update-packages)) warning "" " |")
+           (,(all-the-icons-faicon "flag" :height 1.1 :v-adjust 0.0) nil
+            "Report a BUG"
+            (lambda (&rest _) (browse-url "https://github.com/b-coimbra/.emacs.d/issues/new")) error "" ""))
           ;; line 2
-          ((,(all-the-icons-faicon "linkedin" :height 1.1 :v-adjust 0.0)
-            "Linkedin"
-            ""
-            (lambda (&rest _) (browse-url "homepage")))
-           ("⚑" nil "Show flags" (lambda (&rest _) (message "flag")) error))))
+          ((,(all-the-icons-octicon "mark-github" :height 1.1 :v-adjust 0.0)
+            "AlienFriend"
+            "Browse Alien Page"
+            (lambda (&rest _) (browse-url "https://github.com/b-coimbra/.emacs.d")) nil "" ""))
+          ;; Empty line
+          (("" "\n" "" nil nil "" ""))
+
+          ;; Keybindings
+          ((,(all-the-icons-octicon "search" :height 0.9 :v-adjust -0.1)
+            " Find file" nil
+            (lambda (&rest _) (counsel-find-file)) nil "" "            C-x C-f"))
+          ((,(all-the-icons-octicon "file-directory" :height 1.0 :v-adjust -0.1)
+            " Open project" nil
+            (lambda (&rest _) (counsel-projectile-switch-project)) nil "" "         C-x p d"))
+          ((,(all-the-icons-octicon "three-bars" :height 1.1 :v-adjust -0.1)
+            " File explorer" nil
+            (lambda (&rest _) (counsel-projectile-switch-project)) nil "" "        C-x p D"))
+          ((,(all-the-icons-octicon "settings" :height 0.9 :v-adjust -0.1)
+            " Open settings" nil
+            (lambda (&rest _) (open-config-file)) nil "" "        C-c e  "))))
+
   (setq
    dashboard-projects-backend 'project-el
-   dashboard-startup-banner (concat user-emacs-directory "logos/tom&jerry.png")
-   dashboard-image-banner-max-height 160
-   dashboard-banner-logo-title "Ποσειδον 🔱 εδιτορ"
-   dashboard-set-heading-icons t
-   dashboard-set-file-icons t
-   dashboard-show-shortcuts nil
-   dashboard-center-content t
-   dashboard-set-navigator t
-   dashboard-set-init-info t
    dashboard-projects-switch-function 'counsel-projectile-switch-project-by-name
-
    dashboard-items '((recents        . 5)
                      (projects       . 5)
                      (bookmarks      . 5)
                      (agenda         . 5)
-                     (registers      . 5)
-                     )
-   )
+                     (registers      . 5)))
   :custom-face
-  (dashboard-heading ((t (:foreground "#f1fa8c" :weight bold))))
+  (dashboard-heading ((t (:weight bold)))) ; :foreground "#f1fa8c"
   :hook
   (after-init . dashboard-setup-startup-hook))
 
-;; comment ON/OFF to DEBUG init
-;; (setq debug-on-error t)
-
-(set-language-environment 'utf-8)
-(setq locale-coding-system 'utf-8)
-(set-default-coding-systems 'utf-8)
-(set-terminal-coding-system 'utf-8)
+;; ────────────────────────────────── ENCODING ─────────────────────────────────
+(set-default-coding-systems 'utf-8-unix)
+(prefer-coding-system 'utf-8-unix)
+(set-language-environment "UTF-8")
+(set-locale-environment "en_US.UTF-8")
+(set-selection-coding-system 'utf-8-unix)
+(set-buffer-file-coding-system 'utf-8-unix)
+(set-clipboard-coding-system 'utf-8)
 (set-keyboard-coding-system 'utf-8)
-(set-selection-coding-system 'utf-8)
-(prefer-coding-system 'utf-8)
-
-;;________________________________________________________________
-;;    ORG MODE
-;;________________________________________________________________
-
-;; Remove the emphasis markers from your Org Mode buffer
-(setq org-hide-emphasis-markers t)
+(set-terminal-coding-system 'utf-8)
+;; ────────────────────────────────── ORG-MODE ─────────────────────────────────
 (setq org-latex-inputenc-alist '(("utf8" . "utf8x")))
+(when window-system (global-prettify-symbols-mode t))
 
-(setq org-log-done 'time) ; I need to know when a task is done
-;; Custom org block style
-(defun teddy-ma/org-block-setup ()
-  (let ((background-color (face-background 'default))
-        (foreground-color (face-foreground 'default))
-        (primary-green "#60a83d"))
-    (set-face-attribute 'fringe nil :foreground foreground-color :background background-color)
-    (set-face-attribute 'org-indent nil :background nil :foreground nil)
-    (set-face-attribute 'org-block-begin-line nil :foreground primary-green :background nil)
-    (set-face-attribute 'org-block-end-line nil   :foreground primary-green :background nil))
-  )
-;;(set-face-attribute 'org-block nil :background "red")))
-;;(set-face-attribute 'org-level-2 nil :height 1.3 :background "#60a83d")
+(use-package org
+  :init (setq org-startup-folded t)
+  :config
+  (setq org-ellipsis " ▾") ;; ↴, ▼, ▶, ⤵, ▾
+  (org-indent-mode)
+  (variable-pitch-mode 1)
+  (auto-fill-mode 0)
+  (visual-line-mode 1))
 
-;;  Ellipsis
-(setq org-hide-emphasis-markers nil)
-(setq org-ellipsis " ⤵") ;; ↴, ▼, ▶, ⤵, ▾
+;; Improve org mode looks
+(setq
+ org-roam-v2-ack t                 ; anonying startup message
+ org-log-done 'time                ; I need to know when a task is done
+ org-odd-levels-only t
+ org-pretty-entities t
+ org-startup-indented t
+ org-adapt-indentation t
+ org-hide-leading-stars t
+ org-hide-macro-markers t
+ org-hide-emphasis-markers t
+ org-startup-with-inline-images t
+ org-image-actual-width '(300))
+
+;; ORG-TODO
+(setq org-todo-keywords
+      '((sequence "TODO(t)" "DOING(d!)"  "MAYBE(m)"  "BLOCKED(b@)" "READ(r)" "ARCHIVED(a!)" "INPROGRESS(i)" "WAITING(w)" "NEXT(n)" "REVIEW(r)" "|" "DONE(d)" "CANCELED(c)")))
+
+(setq org-todo-keyword-faces
+      '(("CANCELED" . (:foreground "red" :weight bold))
+        ("DOING"    . (:foreground "salmon" :weight bold))
+        ("REVIEW"   . (:foreground "orange" :weight bold))
+        ("TODO"     . (:foreground "HotPink3" :weight bold))
+        ("BLOCKED"  . (:foreground "DeepPink" :weight bold))
+        ("DONE"     . (:foreground "SeaGreen3" :weight bold))
+        ("READ"     . (:foreground "SteelBlue2" :weight bold))
+        ("ARCHIVED" . (:foreground "LightSlateGrey" :weight bold))
+        ("MAYBE"    . (:foreground "LightSteelBlue4" :weight bold))
+        ("NEXT"     . (:foreground "black" :background "yellow" :weight bold))
+        ("WAITING"  . (:foreground "purple" :background "tomato" :weight bold))
+        ("INPROGRESS" . (:foreground "yellow" :weight bold))))
+
+(require 'org-tempo)
+
+(use-package org-bullets
+  :after org
+  :hook (org-mode . org-bullets-mode)
+  :custom
+  (org-bullets-bullet-list '("☯" "✿" "✚" "◉" "❀"))) ; '("◉" "○" "●" "○" "●" "○" "●")))
+(use-package org-alert
+  :defer t
+  :config
+  (progn
+    (setq alert-default-style 'libnotify)
+    ))
+;; Replace list hyphen with dot
+(font-lock-add-keywords 'org-mode
+                        '(("^ *\\([-]\\) "
+                           (0 (prog1 () (compose-region (match-beginning 1) (match-end 1) "•"))))))
+
+(dolist (face '((org-level-1 . 1.2)
+                (org-level-2 . 1.1)
+                (org-level-3 . 1.05)
+                (org-level-4 . 1.0)
+                (org-level-5 . 1.1)
+                (org-level-6 . 1.1)
+                (org-level-7 . 1.1)
+                (org-level-8 . 1.1)))
+  (set-face-attribute (car face) nil :font "Cantarell" :weight 'regular :height (cdr face)))
+
+;; Make sure org-indent face is available
+(require 'org-indent)
+
+;; Ensure that anything that should be fixed-pitch in Org files appears that way
+(set-face-attribute 'org-block nil :foreground nil :inherit 'fixed-pitch)
+(set-face-attribute 'org-code nil   :inherit '(shadow fixed-pitch))
+(set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))
+(set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
+(set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+(set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+(set-face-attribute 'org-checkbox nil :inherit 'fixed-pitch)
+
+;; (use-package org-appear
+;;   :hook (org-mode . org-appear-mode))
 
 ;; Beautify Org Checkbox Symbol
 (defun teddy-ma/org-buffer-setup ()
+  "Something for like document, i guess 😕."
   (push '("[ ]" . "☐" ) prettify-symbols-alist)
   (push '("[X]" . "☑" ) prettify-symbols-alist)
   (push '("[-]" . "❍" ) prettify-symbols-alist)
-  (prettify-symbols-mode)
   )
-;; (setq-default prettify-symbols-alist '(("#+BEGIN_SRC" . "»") ("#+END_SRC" . "«")("#+begin_src" . "»") ("#+end_src" . "«") ("lambda"  . "λ") ("->" . "→")
+(add-hook 'org-mode-hook #'teddy-ma/org-buffer-setup)
+
+(defun my/org-mode/load-prettify-symbols ()
+  "Looking pretty good, so i adopted it."
+  (interactive)
+  (setq prettify-symbols-alist
+        (mapcan (lambda (x) (list x (cons (upcase (car x)) (cdr x))))
+                '(("#+begin_src" . ?)
+                  ("#+end_src" . ?)
+                  ("#+begin_example" . ?)
+                  ("#+end_example" . ?)
+                  ("#+header:" . ?)
+                  ("#+name:" . ?﮸)
+                  ("#+title:" . "")
+                  ("#+results:" . ?)
+                  ("#+call:" . ?)
+                  (":properties:" . ?)
+                  (":logbook:" . ?)))))
+(add-hook 'org-mode-hook #'my/org-mode/load-prettify-symbols)
 
 ;; Exported html should have no default style. I can style it myself:
 (setq org-html-head-include-default-style nil
@@ -105,35 +322,45 @@
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((emacs-lisp . t)
-   (ruby . t)
    (js .t )
-   (lua .t )
-   (shell . t)
-   (plantuml . t)))
+   (shell . t)))
 
-;; Improve org mode looks
-;; (setq org-startup-indented t
-;;       org-pretty-entities t
-;;       org-hide-emphasis-markers t
-;;       org-startup-with-inline-images t
-;;       org-image-actual-width '(300))
+(defun add-pretty-lambda ()
+  "Make some word or string show as pretty Unicode symbols.  See https://unicodelookup.com for more."
+  (setq prettify-symbols-alist
+        '(("lambda" . 955)
+          ("delta" . 120517)
+          ("epsilon" . 120518)
+          ("<" . 10216)
+          (">" . 10217)
+          ("[" . 10214)
+          ("]" . 10215)
+          ("!=" . 8800)
+          ("<<" . 10218)
+          (">>" . 10219)
+          ("->" . 8594)
+          ("<=" . 10877)
+          (">=" . 10878))))
 
-;; ;; Show hidden emphasis markers
-;; (use-package org-appear
-;;   :hook (org-mode . org-appear-mode))
+(add-hook 'prog-mode-hook 'add-pretty-lambda)
+(add-hook 'org-mode-hook 'add-pretty-lambda)
 
-;; ###----startup performance----###
-
+;; ──────────────────────────── Startup Performance ────────────────────────────
 ;; make startup faster by reducing the frequency of garbage collection and then use a hook to measure Emacs startup time.
 ;; The default is 800 kilobytes.  Measured in bytes.
 ;; Garbage collection off during initialization (focus all memory on initialize)
 (setq gc-cons-threshold (* 50 1000 1000)
       gc-cons-percentage 0.6)
-;reset garbage collection after initialization (return deprecated memory to stack when idle)
+
+;; Reset garbage collection after initialization (return deprecated memory to stack when idle)
 (add-hook 'emacs-startup-hook
-  (lambda ()
-    (setq gc-cons-threshold  (* 2 1000 1000)
-          gc-cons-percentage 0.1)))
+          (lambda ()
+            (setq gc-cons-threshold 16777216 ; 16mb
+                  gc-cons-percentage 0.1)))
+
+(setq gcmh-idle-delay 'auto  ; default is 15s
+      gcmh-auto-idle-delay-factor 10
+      gcmh-high-cons-threshold (* 16 1024 1024))  ; 16mb
 
 ;; Profile emacs startup
 (add-hook 'emacs-startup-hook
@@ -143,12 +370,138 @@
                              (float-time
                               (time-subtract after-init-time before-init-time)))
                      gcs-done)))
-;;________________________________________________________________
-;;    Auto Completion
-;;________________________________________________________________
+;; ─────────────────────────────── AUTO-COMPLETE ───────────────────────────────
 ;; (require 'auto-complete)
 ;; (global-auto-complete-mode t)
 ;; (setq ac-modes '(sh-mode lisp-mode c-mode c++-mode sql-mode html-mode)) ; you can specified only for some certain mode
+;; ──────────────────────────────── COMPANY-MODE ───────────────────────────────
+(use-package company-box
+  :hook (company-mode . company-box-mode))
+;; (set-face-background 'company-box--apply-color "#555555")
+(use-package company
+  :diminish company-mode
+  :hook
+  (after-init . global-company-mode)
+  :bind
+  (:map company-active-map
+        ("C-h"        . nil)
+        ("C-j"        . nil)
+        ("C-k"        . nil)
+        ("C-n"        . nil)
+        ("C-p"        . nil)
+        ("C-w"        . nil)
+        ("RET"        . nil)
+        ("<return>"   . nil)
+        ("SPC"        . nil)    ; Prevent SPC from ever triggering a completion.
+        ("M-n"        . nil)
+        ("M-p"        . nil)
+        ("M-."        . company-show-location)
+        ("M-<"        . company-select-first)
+        ("M->"        . company-select-last)
+        ("C-c C-/"    . company-other-backend)
+        ("C-<return>" . company-complete-selection)
+        ("C-l"        . company-complete-selection)
+        ("<tab>"      . company-indent-or-complete-common)
+        ("TAB"        . company-indent-or-complete-common)
+        ("C-j"        . company-select-next)
+        ("C-k"        . company-select-previous)
+        ("C-d"        . company-show-doc-buffer)
+        ("C-s"        . company-filter-candidates))
+  (:map company-search-map    ; applies to `company-filter-map' too
+        ("C-h"        . nil)
+        ("C-j"        . nil)
+        ("C-k"        . nil)
+        ("C-n"        . nil)
+        ("C-p"        . nil)
+        ("M-/"        . company-complete)
+        ("M-TAB"      . company-yasnippet)
+        ("C-j"        . company-select-next)
+        ("C-k"        . company-select-previous)
+        ("C-s"        . company-filter-candidates)
+        ([escape]     . company-search-abort))
+  :init
+  (setq company-idle-delay 0.0
+        company-echo-delay 0
+        completion-ignore-case t
+        company-require-match nil
+        company-show-quick-access t
+        company-selection-wrap-around t
+        company-minimum-prefix-length 1
+        company-dabbrev-code-modes t
+        company-dabbrev-code-everywhere t
+        company-dabbrev-ignore-case nil
+        company-debbrev-other-buffers 'all
+        company-dabbrev-downcase nil
+        company-tooltip-limit 10
+        company-tooltip-align-annotations t
+        company-tooltip-minimum company-tooltip-limit
+        company-begin-commands '(self-insert-command)
+        company-require-match #'company-explicit-action-p
+        company-frontends '(company-pseudo-tooltip-frontend)
+        company-transformers '(company-sort-by-occurrence))
+  :config
+  (setq company-backends '((company-files        ; files & directory
+                            company-keywords     ; keywords
+                            company-capf         ; what is this?
+                            company-cmake
+                            company-yasnippet
+                            company-c-headers
+                            ;; company-clang     ; it's too slow
+                            ;; company-ispell
+                            ;; company-irony-c-headers
+                            ;; company-irony
+                            company-dabbrev-code
+                            company-semantic
+                            company-gtags
+                            company-etags
+                            company-rtags
+                            company-elisp)
+                           (company-abbrev company-dabbrev))))
+
+;; Use TAB key to cycle through suggestions.(`tng' means 'TAB and go')
+;; (company-tng-configure-default)
+
+(use-package company-rtags)
+(use-package company-c-headers)
+
+;; Delete duplicates from company popups
+(setq-local company-transformers '(delete-dups)
+            company-backends '(company-files (:separate company-dabbrev company-ispell)))
+
+;; (use-package irony
+;;   :config
+;;   (add-hook 'c++-mode-hook 'irony-mode)
+;;   (add-hook 'c-mode-hook 'irony-mode)
+;;   (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
+
+(use-package company-quickhelp
+  :after company
+  :config
+  (setq company-quickhelp-idle-delay 0.0)
+  (company-quickhelp-mode 1))
+
+;; This package adds usage-based sorting to Company
+;; completions. (Perhaps it too can be replaced by `historian' one day!)
+(use-package company-statistics
+  :after company
+  :config
+  (company-statistics-mode))
+
+(use-package yasnippet
+  :delight yas-minor-mode " υ"
+  :custom (yas-snippet-dirs '("~/.emacs.d/etc/yasnippet/snippets"))
+  :commands yas-reload-all
+  :hook ((prog-mode minibuffer-inactive-mode org-mode) . yas-minor-mode)
+  :config (yas-global-mode))
+
+(use-package yasnippet-snippets
+  :after yasnippet
+  :custom (yasnippet-snippets-dirs '("~/.emacs.d/etc/yasnippet/snippets"))
+  :config (yasnippet-snippets-initialize))
+
+(use-package ibuffer
+  :bind ("C-x C-b" . ibuffer)
+  :delight)
 
 (setq ibuffer-saved-filter-groups
       (quote (("default"
@@ -164,55 +517,44 @@
                          (name . "^\\*scratch\\*$")
                          (name . "^\\*Messages\\*$")))
                ))))
-
 (add-hook 'ibuffer-mode-hook
-(lambda ()
-(ibuffer-auto-mode 1)
-(ibuffer-switch-to-saved-filter-groups "default")))
+          (lambda ()
+            (ibuffer-auto-mode 1)
+            (ibuffer-switch-to-saved-filter-groups "default")))
 
-;; don't show these
-;(add-to-list 'ibuffer-never-show-predicates "zowie")
 ;; Don't show filter groups if there are no buffers in that group
 (setq ibuffer-show-empty-filter-groups nil)
-
 ;; Don't ask for confirmation to delete marked buffers
 (setq ibuffer-expert t)
-
-;; Spell checking
-;; Requires Hunspell
+(setq ibuffer-default-sorting-mode 'recency)
+;; ───────────────────────────────── FLY-SPELL ─────────────────────────────────
 (use-package flyspell
   :config
-  (setq ispell-program-name "hunspell"
+  (setq ispell-program-name "hunspell" ; Requires Hunspell
         ispell-default-dictionary "en_GB")
-;  :hook (text-mode . flyspell-mode)
+  :hook (org-mode . flyspell-mode)
   :bind (("M-<f7>" . flyspell-buffer)
          ("<f7>" . flyspell-word)
+         ("C-<f7>" . flyspell-auto-correct-word)
          ("C-;" . flyspell-auto-correct-previous-word)))
-
+;; ────────────────────────────────── WEB-MODE ─────────────────────────────────
 (use-package emmet-mode
-  :ensure t
+  :after(web-mode css-mode scss-mode)
+  :commands (emmet-mode emmet-expand-line yas-insert-snippet company-complete)
   :config
+  (setq emmet-move-cursor-between-quotes t)
+  (add-hook 'emmet-mode-hook (lambda () (setq emmet-indent-after-insert nil)))
   (add-hook 'sgml-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
-  (add-hook 'web-mode-hook 'emmet-mode) ;; Auto-start on any markup modes
-  (add-hook 'css-mode-hook  'emmet-mode)) ;; enable Emmet's css abbreviation.
-
-;; ──────────────────── Better interaction with X clipboard ────────────────────
-(setq-default
- ;; Makes killing/yanking interact with the clipboard.
- x-select-enable-clipboard t
-
- ;; Save clipboard strings into kill ring before replacing them. When
- ;; one selects something in another program to paste it into Emacs, but
- ;; kills something in Emacs before actually pasting it, this selection
- ;; is gone unless this variable is non-nil.
- save-interprogram-paste-before-kill t
-
- ;; Shows all options when running apropos. For more info,
- ;; https://www.gnu.org/software/emacs/manual/html_node/emacs/Apropos.html.
- apropos-do-all t
-
- ;; Mouse yank commands yank at point instead of at click.
- mouse-yank-at-point t)
+  (add-hook 'css-mode-hook  'emmet-mode) ;; enable Emmet's css abbreviation.
+                                        ;(setq emmet-indentation 2)
+  (unbind-key "C-M-<left>" emmet-mode-keymap)
+  (unbind-key "C-M-<right>" emmet-mode-keymap)
+  :bind
+  ("C-j" . emmet-expand-line)
+  ((:map emmet-mode-keymap
+         ("C-c [" . emmet-prev-edit-point)
+         ("C-c ]" . emmet-next-edit-point)))
+  );end emmet mode ;; enable Emmet's css abbreviation.
 ;;________________________________________________________________
 ;;    Global Key Bindings
 ;;________________________________________________________________
@@ -225,22 +567,26 @@
 				(save-buffer)
 				(eval-buffer)))))
 
+(global-unset-key (kbd "<escape>"))
+(global-set-key (kbd "<escape>") (kbd "C-g"))
+
 (define-key esc-map "&" 'query-replace-regexp)		; redefined ESC-&
 (global-set-key (kbd "M-#") 'query-replace-regexp)
 (global-set-key (kbd "M-\"") 'insert-pair)			; Wrap text in quotes
-;(global-set-key (kbd "TAB") 'self-insert-command)	; To make sure that emacs is actually using TABS instead of SPACES
+                                        ;(global-set-key (kbd "TAB") 'self-insert-command)	; To make sure that emacs is actually using TABS instead of SPACES
 
 ;; I use C-h for backspace in Emacs and move `help-command' elsewhere:
-(global-set-key "\C-h" 'backward-delete-char-untabify)
+(global-set-key "\^h" 'backward-delete-char)
 (define-key isearch-mode-map "\C-h" 'isearch-delete-char)
+;; (global-set-key (kbd "C-r") 'counsel-minibuffer-history)
 (global-set-key (kbd "C-S-H") 'kill-whole-line)
-(global-set-key (kbd "<f12>") 'help-command)
 (global-set-key "\C-c\C-c" 'comment-or-uncomment-region)
-(global-set-key "\C-t" 'toggle-truncate-lines) ; this lets us have long lines go off the side of the screen instead of hosing up the ascii art
+(global-set-key "\C-x\C-l" 'toggle-truncate-lines) ; this lets us have long lines go off the side of the screen instead of hosing up the ascii art
 (global-set-key "\C-c\C-d" "\C-a\C- \C-n\M-w\C-y")	; Duplicate a whole line
 (global-set-key (kbd "C-S-R") 'rename-file)
 (global-set-key "\C-cD" 'Delete-current-file)
-(global-set-key "\C-z" 'ansi-term)
+;; disable ctrl Z
+(global-unset-key "\^z")
 ;; (global-set-key "\C-z" 'call-last-kbd-macro)		; call-last-kbd-macro frequently used key on a double key sequence (I think original is ^Xe)
 (global-set-key "\C-w" 'backward-kill-word)
 (global-set-key "\C-x\C-k" 'kill-region)
@@ -248,9 +594,12 @@
 (global-set-key "\M-o"  'other-window)
 (global-set-key "\M-n"  'next-buffer)
 (global-set-key "\M-p"  'previous-buffer)
+(global-set-key (kbd "M-<tab>") 'company-complete-common-or-cycle)
+(global-set-key "\M-TAB"  'company-complete-common-or-cycle)
 (global-set-key (kbd "C-.") #'other-window)
 (global-set-key (kbd "C-,") #'prev-window)
 (defun prev-window ()
+  "Go to previous window."
   (interactive)
   (other-window -1))
 
@@ -262,6 +611,10 @@
 ;; Toggle show-trailing-whitespace.
 (global-set-key (kbd "C-c M-w") (function (lambda () (interactive) (setq show-trailing-whitespace (not show-trailing-whitespace)))))
 
+(global-set-key (kbd "M-J") (lambda () (interactive) (enlarge-window 1)))
+(global-set-key (kbd "M-K") (lambda () (interactive) (enlarge-window -1)))
+(global-set-key (kbd "M-H") (lambda () (interactive) (enlarge-window -1 t)))
+(global-set-key (kbd "M-L") (lambda () (interactive) (enlarge-window 1 t)))
 (windmove-default-keybindings)
 (global-set-key (kbd "s-<left>")    'windmove-left)
 (global-set-key (kbd "s-<right>")   'windmove-right)
@@ -282,75 +635,101 @@
 (global-set-key (kbd "M-t e") 'transpose-sexps)
 (global-set-key (kbd "M-t s") 'transpose-sentences)
 (global-set-key (kbd "M-t p") 'transpose-paragraphs)
+(global-set-key (kbd "M-<f1>") 'emojify-insert-emoji)
 
-;; Remember and restore the last cursor location of opened files
-(save-place-mode 1)
-(setq save-place-file (locate-user-emacs-file "places" ".emacs-places"))
+;; ──────────────────────────────────── GDB ────────────────────────────────────
+;; Show main source buffer when using GDB
+(setq gdb-show-main t) ; keep your source code buffer displayed in a split window.
+;; (setq gdb-many-windows t) ; GDB interface supports a number of other windows
 
-;; may be running afoul of save-place-forget-unreadable-files.
-;; On exit, it checks that every loaded file is readable before
-;; saving its buffer position. potentially very slow if you use NFS.
-;; bellow cmnd will restores emacs exit to nearly instantaneous.
-;; (setq save-place-forget-unreadable-files nil)
+;; ─────────────────────────────────── C/C++ ───────────────────────────────────
 
-(global-auto-revert-mode 1)							; Automatically update buffers if file content on the disk has changed.
-(setq global-auto-revert-non-file-buffers t)		; Revert Dired and other buffers
+;; (with-eval-after-load "cc-mode" (define-key c++-mode-map [f5] #'compile))
+;; Run C programs directly from within emacs
+(defun compile-and-run()
+  "Compile and Run with program name."
+  (interactive)
+  (save-buffer)
+  (compile (concat "g++ " (file-name-nondirectory (buffer-file-name)) " -o " (file-name-sans-extension (file-name-nondirectory (buffer-file-name))) " && ./" (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))) t )
+  (other-window 1)
+  (goto-char (point-max)))
+(define-key c++-mode-map [f5] #'compile-and-run)
+;; (add-hook 'c++-mode-hook
+;;           (lambda () (global-set-key (kbd "<f5>") #'compileandrun)))
+
+(defun cpp ()
+  "Compile with ./a.out name and Run."
+  (interactive)
+  (async-shell-command (concat "g++ " (buffer-file-name) " && ./a.out") "*c++ output*")
+  (other-window 1)
+  (goto-char (point-max)))
+
+;; (defun delete-window ()
+;;   "Trying to delete compilation window after done."
+;;   if (y-or-n-p "Do it?")
+;;   (progn
+;;     ;; code to do something here
+;;     (delete-window)
+;;     )
+;;   (progn
+;;     ;; code if user answered no.
+;;     )
+;;   )
+(define-key c++-mode-map [f12] #'cpp)
+
+(defun c-program ()
+  "Compile with ./a.out and Run."
+  (interactive)
+  (async-shell-command (concat "gcc " (buffer-file-name) " && ./a.out") "*c output*")
+  (other-window 1)
+  (goto-char (point-max)))
+(define-key c-mode-map [f12] #'c-program)
 ;;________________________________________________________________
 ;;    Separte Customization from init file
 ;;________________________________________________________________
-(setq custom-file (locate-user-emacs-file "custom.el")) ; Move customization variables to a separate file ~/.emacs.d/custom.el and load it
+(setq-default custom-file (expand-file-name "etc/custom.el" user-emacs-directory))
 (unless (file-exists-p custom-file)
   (with-temp-buffer
     (write-file custom-file)))
-(load custom-file 'noerror 'nomessage)
-;;________________________________________________________________
-;;    Modeline
-;;________________________________________________________________
 
-;; Basic Customization
-(setq display-time-format "%l:%M%P (%a) %e %b ♪" 	; %D for date format
-      display-time-default-load-average nil
-      mode-line-compact t)
-;; Permanent display of line and column numbers is handy.
-(size-indication-mode 1)
-(display-time-mode)
-(display-battery-mode)
+(when (file-exists-p custom-file)
+  (load custom-file))
+;; (load custom-file 'noerror 'nomessage)
 
-;;________________________________________________________________
-;;    Balancing Parentheses
-;;________________________________________________________________
-(electric-pair-mode 1)			    ; auto close bracket insertion
-;; make electric-pair-mode work on more brackets
-(setq electric-pair-pairs
-      '(
-        (?\" . ?\")
-        (?\< . ?\>)
-        (?\{ . ?\})))
+;; https://emacs.metaphoric.dev/#org21aec79
+;; Whenever the base core.org file is updated, all the custom user settings are
+;; wiped out.
+;; To prevent this, the user may define permanent settings in the
+;; config.org file.
+
+;; (setq-default userconfig-file (expand-file-name "config.el" user-emacs-directory))
+;; (when (file-exists-p userconfig-file)
+;;   (load userconfig-file))
+
+;; Load custom themes
+(add-to-list 'custom-theme-load-path (expand-file-name "etc/themes/" user-emacs-directory))
+
+;; Linux emoji font
+(when (member "Noto Color Emoji" (font-family-list))
+  (set-fontset-font t 'symbol (font-spec :family "Noto Color Emoji") nil 'prepend)
+  (set-fontset-font "fontset-default" '(#xFE00 . #xFE0F) "Noto Color Emoji"))
 ;;________________________________________________________________
 ;;    Editing Related
 ;;________________________________________________________________
 (delete-selection-mode t)		; By default emacs will not delete selection text when typing on it, let's fix it
 (setq kill-whole-line t) 			; kills the entire line plus the newline whenever you invoke kill-line (i.e. via C-k).
 
-;; ###----Setting Key Bindings with use-package----###
-
-(ffap-bindings)		; find-file-at-point, smarter C-x C-f when point on path or URL
+(ffap-bindings) ; find-file-at-point, smarter C-x C-f when point on path or URL
 
 ;; Saves the minibuffer history on every Emacs session.
-(savehist-mode t)
-(setq savehist-additional-variables '(kill-ring search-ring regexp-search-ring))
+(savehist-mode 1)
+(setq savehist-file "~/.emacs.d/var/savehist.el")
 (setq history-length 25)
-
-;; To set the file which the minibuffer is saved use:
-(setq savehist-file "~/.emacs.d/tmp/savehist")
-
-(when window-system (global-prettify-symbols-mode t))
-
-;; Scratch buffer
-;; (setq inhibit-startup-message t
-;;       initial-scratch-message "#+title: Scratch Buffer\n\nWelcome to Emacs for content creators.\n\nPlease change the folder locations and fonts in the configuration file to match your preferences.\n\nGo to the [[https://lucidmanager.org/productivity/configure-emacs/][Lucid Manager]] website for full documentation of this configuration file.\n"
-;;       initial-major-mode 'org-mode)
-(defalias 'yes-or-no-p 'y-or-n-p)		; Ask y or n instead of yes or no
+(setq history-delete-duplicates t)
+(setq savehist-save-minibuffer-history 1)
+(setq savehist-additional-variables '(kill-ring search-ring regexp-search-ring))
+;; Ask y or n instead of yes or no
+(defalias 'yes-or-no-p 'y-or-n-p)
 
 ;; Open dired in same buffer
 ;; Sort Dired buffers
@@ -361,13 +740,8 @@
 (setq image-dired-external-viewer "/usr/bin/sxiv") ;or /usr/bin/gimp
 ;; Image-dired Keyboard shortcuts
 (with-eval-after-load 'dired
-    (define-key dired-mode-map (kbd "C-c x") 'image-dired)
-    (define-key dired-mode-map (kbd "M-<return>") 'image-dired-dired-display-external))
-
-;; Disable some default feature
-(tool-bar-mode -1)
-(menu-bar-mode -1)
-(scroll-bar-mode -1)
+  (define-key dired-mode-map (kbd "C-c x") 'image-dired)
+  (define-key dired-mode-map (kbd "M-<return>") 'image-dired-dired-display-external))
 
 ;; (load-theme 'tango-dark t)
 ;; (set-foreground-color "ivory")
@@ -375,23 +749,23 @@
 ;; (set-face-attribute 'region nil :background "#666" :foreground "#ffffff")	; Change the HIGHLIGHT COLOR for SELECTED TEXT
 ;; (set-face-attribute 'highlight nil :foreground 'unspecified)
 
-(setq display-line-numbers 'relative)
-(setq display-line-numbers-width 0)
-(set-frame-parameter nil 'fullscreen 'fullheight)
 ;;________________________________________________________________
 ;;    Fonts Setting
 ;;________________________________________________________________
-(global-font-lock-mode 1)			; Use font-lock everywhere.
-(setq font-lock-maximum-decoration t)		; We have CPU to spare; highlight all syntax categories.
+(global-font-lock-mode 1)               ; Use font-lock everywhere.
+(setq font-lock-maximum-decoration t)   ; We have CPU to spare; highlight all syntax categories.
 
 (setq default-input-method "bengali-probhat")
-(set-fontset-font "fontset-default" 'bengali (font-spec :family "Kalpurush" :size 14))
+(set-fontset-font "fontset-default" 'bengali (font-spec :family "Kalpurush" :size 16))
 
 (defun remove-quail-show-guidance ()
+  "Function for removing guidance."
   nil)
 (defun remove-quail-completion ()
+  "Function for removing completion."
   (quail-select-current))
 (defun bn-company-wordfreq ()
+  "Bangla auto-suggestion with company-wordfreq."
   (interactive)
   (advice-add 'quail-show-guidance :override #'remove-quail-show-guidance)
   (advice-add 'quail-completion :override #'remove-quail-completion)
@@ -407,8 +781,8 @@
 		            :weight 'light
 		            :height (cond ((string-equal system-type "gnu/linux") 110)
 				                  ((string-equal system-type "darwin") 130)))
-(set-face-attribute 'font-lock-comment-face nil  :family "Comic Mono" :slant 'italic :height 100)
-(set-face-attribute 'font-lock-function-name-face nil :slant 'italic :weight 'bold)
+(set-face-attribute 'font-lock-comment-face nil :family "Cantarell" :slant 'italic :height 92)
+(set-face-attribute 'font-lock-function-name-face nil :foreground "cyan" :slant 'italic :weight 'medium)
 (set-face-attribute 'font-lock-variable-name-face nil :weight 'bold)
 (set-face-attribute 'font-lock-keyword-face nil :weight 'bold)
 
@@ -422,31 +796,27 @@
 ;; (set-frame-font "Source Code Pro-10" nil t)
 ;; (set-frame-font "Fira Code-10" nil t)
 
-;;________________________________________________________________
-;;    Cursor Mode
-;;________________________________________________________________
+;; ─────────────────────────────────── CURSOR ──────────────────────────────────
 (set-mouse-color "white")
 (setq x-stretch-cursor t)		; make cursor the width of the character it is under i.e. full width of a TAB
 (defun djcb-set-cursor-according-to-mode ()
-    "change cursor color and type according to some minor modes."
-    (cond
-     (buffer-read-only
-      (set-cursor-color "yellow")
-      (setq cursor-type '(hbar . 3)))
-     (overwrite-mode
-      (set-cursor-color "red")
-      (setq cursor-type 'hollow))
-     (t
-;;      (set-cursor-color "lightblue")
-      (set-cursor-color "DeepSkyBlue")
-      (setq cursor-type '(bar . 2)))))
+  "Change cursor color and type according to some minor modes."
+  (cond
+   (buffer-read-only
+    (set-cursor-color "yellow")
+    (setq cursor-type '(hbar . 3)))
+   (overwrite-mode
+    (set-cursor-color "red")
+    (setq cursor-type 'hollow))
+   (t
+    (set-cursor-color "#ba55d3")
+    (setq cursor-type '(bar . 2)))))
 (add-hook 'post-command-hook 'djcb-set-cursor-according-to-mode)
-(blink-cursor-mode 1)			; Turn-off Cursor Blink (1 to Enable & 0 to Stop)
+(blink-cursor-mode 1)
 
 (defun ljos/back-to-indentation|beginning-of-line ()
-  "Moves the cursor back to indentation or to the beginning of
-the line if it is already at the indentation.  If it is at the
-beginning of the line it stays there."
+  "Move cursor back to the beginning of the line.
+If it is at the beginning of the line it stays there."
   (interactive)
   (when (not (bolp))
     (let ((p (point)))
@@ -455,55 +825,103 @@ beginning of the line it stays there."
         (beginning-of-line 1)))))
 
 (global-set-key (kbd "C-a") #'ljos/back-to-indentation|beginning-of-line)
-;;________________________________________________________________
-;;    Backup Files
-;;________________________________________________________________
-(defvar --backup-directory (concat user-emacs-directory "backups"))
-(if (not (file-exists-p --backup-directory))
-        (make-directory --backup-directory t))
 
-(setq-default backup-by-copying t               ; don't clobber symlinks
-              backup-directory-alist `(("." . ,--backup-directory))
-              default-directory "~/"
-              load-prefer-newer t 				; don't use the compiled code if its the older package.
-              make-backup-files t               ; backup of a file the first time it is saved.
-			  version-control t                 ; version numbers for backup files
-			  delete-by-moving-to-trash t		; move deleted files to trash
-			  delete-old-versions t             ; delete excess backup files silently
-			  kept-old-versions 2               ; oldest versions to keep when a new numbered backup is made (default: 2)
-			  kept-new-versions 6               ; newest versions to keep when a new numbered backup is made (default: 2)
-			  auto-save-default t               ; auto-save every buffer that visits a file
-			  auto-save-timeout 30              ; number of seconds idle time before auto-save (default: 30)
-			  auto-save-interval 200            ; number of keystrokes between auto-saves (default: 300)
-              show-paren-delay 0           		; how long to wait?
-              show-paren-style 'mixed      		; alternatives are 'expression' and 'parenthesis'
-              enable-recursive-minibuffers t    ; allow commands to be run on minibuffers.
-              scroll-conservatively 10
-			  scroll-margin 7
-              scroll-preserve-screen-position t
-              inhibit-startup-buffer-menu t
-              inhibit-startup-screen t 			; Do not show the startup message.
-              visible-bell t					; Flash the screen on error, don't beep.
-              view-read-only t					; Toggle ON or OFF with M-x view-mode (or use e to exit view-mode).
-              use-dialog-box nil				; Don't pop up UI dialogs when prompting
-              tab-width 4
-              indent-tabs-mode nil			; set indentation with spaces instead of tabs with 4 spaces
-              indent-line-function 'insert-tab
-              backward-delete-char-untabify-method 'hungry ; Alternatives is: 'all (remove all consecutive whitespace characters, even newlines)
-              require-final-newline t
-              save-interprogram-paste-before-kill t
-              message-log-max 1000
-              fill-column 80
-              make-pointer-invisible t          ; hide cursor when writing
-              column-number-mode t              ; Show (line,column) in mode-line
-              cua-selection-mode t ; Delete regions
-              ;; Use your name in the frame title. :)
-              frame-title-format (format "%s's Emacs" (if (or (equal user-login-name "suvratapte")
-                                                              (equal user-login-name "suvrat.apte"))
-                                                          "Suvrat"
-                                                        (capitalize user-login-name)))
-              )
-(setq delete-auto-save-files t)		; deletes buffer's auto save file when it is saved or killed with no changes in it.
+;; ──────────────────────── General But Better Defaults ────────────────────────
+(setq-default
+ ad-redefinition-action 'accept                   ; Silence warnings for redefinition
+ confirm-kill-emacs 'yes-or-no-p                  ; Confirm before exiting Emacs
+ cursor-in-non-selected-windows nil               ; Hide the cursor in inactive windows
+ speedbar t                         ; Quick file access with bar
+ backup-by-copying t               ; don't clobber symlinks
+ backup-directory-alist `(("."~/.emacs.d/var/backup/per-session))
+ default-directory "~/"
+ load-prefer-newer t 				; don't use the compiled code if its the older package
+ make-backup-files t               ; backup of a file the first time it is saved
+ delete-by-moving-to-trash t		; move deleted files to trash
+ delete-old-versions t             ; delete excess backup files silently
+ kept-new-versions 6               ; newest versions to keep when a new numbered backup is made (default: 2)
+ kept-old-versions 2               ; oldest versions to keep when a new numbered backup is made (default: 2)
+ version-control t                 ; version numbers for backup files
+ auto-save-default t               ; auto-save every buffer that visits a file
+ auto-save-timeout 30              ; number of seconds idle time before auto-save (default: 30)
+ auto-save-interval 200            ; number of keystrokes between auto-saves (default: 300)
+ compilation-always-kill t         ; kill compilation process before starting another
+ compilation-ask-about-save nil    ; save all buffers on `compile'
+ compilation-scroll-output t
+ tab-width 4
+ indent-tabs-mode nil              ; set indentation with spaces instead of tabs with 4 spaces
+ indent-line-function 'insert-tab
+ require-final-newline t
+ x-select-enable-clipboard t       ; Makes killing/yanking interact with the clipboard
+ save-interprogram-paste-before-kill t ; Save clipboard strings into kill ring before replacing them
+ apropos-do-all t                  ; Shows all options when running apropos
+ mouse-yank-at-point t             ; Mouse yank commands yank at point instead of at click
+ message-log-max 1000
+ fill-column 80
+ initial-scratch-message nil       ; Empty the initial *scratch* buffer
+ make-pointer-invisible t          ; hide cursor when writing
+ column-number-mode t              ; Show (line,column) in mode-line
+ cua-selection-mode t              ; Delete regions
+ enable-recursive-minibuffers t    ; allow commands to be run on minibuffers.
+ backward-delete-char-untabify-method 'hungry ; Alternatives is: 'all (remove all consecutive whitespace characters, even newlines)
+ )
+(save-place-mode 1)
+(show-paren-mode 1)         ; Highlight matching parenthesis
+(global-auto-revert-mode 1) ; Automatically revert a buffer when it changes on disk
+;; (fringe-mode '(8 . 0))      ; Enable fringe on the left for git-gutter-fringe+
+(global-subword-mode 1)     ; Iterate through CamelCase words
+(electric-pair-mode t)      ; Enable Matching delimeters
+(electric-indent-mode nil)  ; Auto indentation
+;; make electric-pair-mode work on more brackets
+;; (setq electric-pair-pairs
+;;       '(
+;;         (?\" . ?\")
+;;         (?\{ . ?\})))
+
+;; Get rid of "For information about GNU Emacs..." message at startup, unless
+;; we're in a daemon session where it'll say "Starting Emacs daemon." instead,
+;; which isn't so bad.
+(unless (daemonp)
+  (advice-add #'display-startup-echo-area-message :override #'ignore))
+
+(setq
+ debug-on-error init-file-debug       ; Reduce debug output, well, unless we've asked for it.
+ jka-compr-verbose init-file-debug
+ read-process-output-max (* 64 1024)  ; 64kb
+ ;; Emacs "updates" its ui more often than it needs to, so slow it down slightly
+ idle-update-delay 1.0              ; default is 0.5
+ scroll-step 1                      ; scroll with less jump
+ scroll-preserve-screen-position t
+ scroll-margin 3
+ scroll-conservatively 101
+ scroll-up-aggressively 0.01
+ scroll-down-aggressively 0.01
+ lazy-lock-defer-on-scrolling t     ; set this to make scolloing faster
+ auto-window-vscroll nil            ; Lighten vertical scroll
+ fast-but-imprecise-scrolling nil
+ mouse-wheel-scroll-amount '(1 ((shift) . 1))
+ mouse-wheel-progressive-speed nil
+ hscroll-step 1                     ; Horizontal Scroll
+ hscroll-margin 1
+ redisplay-skip-fontification-on-input t
+ visible-bell t                     ; Flash the screen on error, don't beep.
+ view-read-only t					; Toggle ON or OFF with M-x view-mode (or use e to exit view-mode).
+ use-dialog-box nil                 ; Don't pop up UI dialogs when prompting
+ echo-keystrokes 0.1                ; Show Keystrokes in Progress Instantly
+ delete-auto-save-files t           ; deletes buffer's auto save file when it is saved or killed with no changes in it.
+ save-place-forget-unreadable-files nil
+ blink-matching-paren t              ; Blinking parenthesis
+ next-line-add-newlines nil     ; don't automatically add new line, when scroll down at the bottom of a buffer
+ require-final-newline t        ; require final new line
+ mouse-sel-retain-highlight t   ; keep mouse high-lighted
+ highlight-nonselected-windows nil
+ transient-mark-mode t          ; highlight the stuff you are marking
+ show-paren-delay 0           		; how long to wait?
+ show-paren-style 'mixed      		; alternatives are 'expression' and 'parenthesis'
+ ffap-machine-p-known 'reject       ; Don't ping things that look like domain names.
+ pgtk-wait-for-event-timeout 0.001
+ frame-title-format '(buffer-file-name "Emacs: %b (%f)" "Emacs: %b")   ; name of the file I am editing as the name of the window
+ )
 
 ;; ─────────────────── Added functionality (Generic usecases) ──────────────────
 ;; Unfill paragraph
@@ -516,9 +934,8 @@ beginning of the line it stays there."
 ;; Handy key definition
 (define-key global-map "\M-Q" 'unfill-paragraph)
 
-
 (defun comment-pretty ()
-  "Insert a comment with '─' (C-x 8 RET BOX DRAWINGS LIGHT HORIZONTAL) on each side."
+  "Comment with '─' (C-x 8 RET BOX DRAWINGS LIGHT HORIZONTAL) on each side."
   (interactive)
   (let* ((comment-char "─")
          (comment (read-from-minibuffer "Comment: "))
@@ -545,7 +962,7 @@ beginning of the line it stays there."
         (insert comment)
         (when (> comment-length 0) (insert " "))
         (dotimes (_ (if (= (% comment-length 2) 0)
-                      (- space-on-each-side 1)
+                        (- space-on-each-side 1)
                       space-on-each-side))
           (insert comment-char))))))
 
@@ -564,19 +981,16 @@ beginning of the line it stays there."
 ;;________________________________________________________________
 ;;		Identity Who I Am ?
 ;;________________________________________________________________
-
-;; Do not publish my email on Usenet
 (setq user-full-name       "Likhon Barai"
-      user-login-name      "Likhon-art"
-      user-real-login-name "Likhon"
-      user-mail-address    "likhonhere007@gmail.com"
-      system-name          "Likhon.Art")
+      user-login-name      "likhon"
+      user-real-login-name "raxit"
+      user-mail-address    "likhonhere007@gmail.com")
 ;;________________________________________________________________
 ;;		Highlight Current LINE
 ;;________________________________________________________________
 (when window-system (global-hl-line-mode 1))
-(set-face-background 'highlight "#3e4446")	; you canalso try: "#3e4446" or "#gray6" etc.
-(set-face-foreground 'highlight nil)
+;; (set-face-background 'highlight "#3e4446")	; you canalso try: "#3e4446" or "#gray6" etc.
+;; (set-face-foreground 'highlight nil)
 ;; (set-face-underline-p 'highlight "#ff0000")
 
 ;; (when window-system (vline-global-mode 1))
@@ -594,6 +1008,7 @@ beginning of the line it stays there."
 
 ;; Use the following snippet after you’ve set the alpha as above to assign a toggle to “C-c t”:
 (defun toggle-transparency ()
+  "Crave for transparency!"
   (interactive)
   (let ((alpha (frame-parameter nil 'alpha)))
     (set-frame-parameter
@@ -606,50 +1021,94 @@ beginning of the line it stays there."
          '(85 . 50) '(100 . 100)))))
 (global-set-key (kbd "C-c t") 'toggle-transparency)
 
-;;don't highlight the end of long lines
-(setq whitespace-line-column 99999)
-
-(setq hi-lock-file-patterns-policy #'(lambda (dummy) t))
-
 ;; ────────────────────────────── Generic packages ─────────────────────────────
+
+;; in ~/.emacs.d/init.el (or ~/.emacs.d/early-init.el in Emacs 27)
+(setq package-enable-at-startup nil ; don't auto-initialize!
+      ;; don't add that `custom-set-variables' block to my init.el!
+      package--init-file-ensured t)
+
+;; Select the folder to store packages
+;; Comment / Uncomment to use desired sites
+(setq package-user-dir (expand-file-name "elpa" user-emacs-directory)
+      package-archives
+      '(("gnu"   . "https://elpa.gnu.org/packages/")
+        ("melpa" . "https://melpa.org/packages/")
+        ("cselpa" . "https://elpa.thecybershadow.net/packages/")
+        ;; ("melpa-cn" . "http://mirrors.cloud.tencent.com/elpa/melpa/")
+        ;; ("gnu-cn"   . "http://mirrors.cloud.tencent.com/elpa/gnu/")
+        ))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Non-Melpa Packages
+
+;; Add packages contained in site-elisp/ to load-path too.
+;; Add Packages Manually from Git
+
+;; cd site-elisp/
+;; git submodule add https://github.com/foo/bar.git
+
+;; Verify .gitmodules file that the newly added package exist.
+;; Update Manually Added Packages
+
+;; git submodule init
+;; git submodule update
+
+(require 'cl)
 (require 'package)
-(setq package-enable-at-startup nil) ; dont do it immediately
-(setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
-                         ("melpa" . "https://melpa.org/packages/")
-                         ("org" . "http://orgmode.org/elpa/")))
+;; Configure Package Manager
+(unless (bound-and-true-p package--initialized)
+  (setq package-enable-at-startup nil)          ; To prevent initializing twice
+  (package-initialize))
+
+;; set use-package-verbose to t for interpreted .emacs,
+;; and to nil for byte-compiled .emacs.elc.
+(eval-and-compile
+  (setq use-package-verbose (not (bound-and-true-p byte-compile-current-file))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+
 ;; Install use-package if not installed
 (unless (package-installed-p 'use-package)
   (package-refresh-contents) ; update archives
   (package-install 'use-package)) ; grab the newest use-package
-
 (eval-and-compile
+  (require 'use-package)
+  (require 'bind-key)
+  (setq use-package-verbose t)
   (setq use-package-always-ensure t)
   (setq use-package-expand-minimally t)
   (setq use-package-compute-statistics t)
+  (setq warning-minimum-level :emergency)
   (setq use-package-enable-imenu-support t))
 
-(eval-when-compile
-  (require 'use-package)
-  (require 'bind-key))
-
-;; ──────────────── Additional packages and their configurations ───────────────
-
+;; ─────────────────── Additional Packages and Configurations ──────────────────
 ;; Add `:doc' support for use-package so that we can use it like what a doc-strings is for
-;; functions.
 (eval-and-compile
   (add-to-list 'use-package-keywords :doc t)
   (defun use-package-handler/:doc (name-symbol _keyword _docstring rest state)
     "An identity handler for :doc.
      Currently, the value for this keyword is being ignored.
-     This is done just to pass the compilation when :doc is included
-     Argument NAME-SYMBOL is the first argument to `use-package' in a declaration.
-     Argument KEYWORD here is simply :doc.
-     Argument DOCSTRING is the value supplied for :doc keyword.
-     Argument REST is the list of rest of the  keywords.
-     Argument STATE is maintained by `use-package' as it processes symbols."
+     This is done just to pass the compilation when :doc is
+     included Argument NAME-SYMBOL is the first argument to
+     `use-package' in a declaration.  Argument KEYWORD here is
+     simply :doc.  Argument DOCSTRING is the value supplied for
+     :doc keyword.  Argument REST is the list of rest of the
+     keywords.  Argument STATE is maintained by `use-package' as
+     it processes symbols."
 
     ;; just process the next keywords
     (use-package-process-keywords name-symbol rest state)))
+
+;; github.com/doomemacs/doomemacs/blob/develop/core/core.el#L296
+(use-package gcmh
+  :init (gcmh-mode 1)
+  :config
+  (setq
+   gcmh-idle-delay 'auto  ; default is 15s
+   gcmh-auto-idle-delay-factor 10
+   gcmh-high-cons-threshold (* 16 1024 1024))  ; 16mb
+  )
 
 (use-package auto-package-update
   :if (not (daemonp))
@@ -660,11 +1119,13 @@ beginning of the line it stays there."
   (auto-package-update-hide-results t)
   :config
   (auto-package-update-maybe))
+;; Diminish a feature that removes certain minor-modes from mode-line.
+(use-package diminish)
 
-(use-package diminish) ; Diminish, a feature that removes certain minor modes from mode-line.
+;; Font lock of special Dash variables (it, acc, etc.). Comes default with Emacs.
+(global-dash-fontify-mode)
 
 (use-package delight
-  :ensure t
   :delight)
 
 ;; Benchmark startup
@@ -674,8 +1135,21 @@ beginning of the line it stays there."
   ;; To disable collection of benchmark data after init is done.
   (add-hook 'after-init-hook 'benchmark-init/deactivate))
 
-(add-hook 'after-init-hook
-          (lambda () (message "loaded in %s" (emacs-init-time))))
+(use-package avy
+  :bind(("C-'" . 'avy-goto-char)
+        ("C-:" . 'avy-goto-char-2)
+        ("M-g g" . 'avy-goto-line)
+        ("M-g e" . 'avy-goto-word-0)
+        ("M-g w" . 'avy-goto-word-1)
+        ("C-c C-j" . 'avy-resume))
+  :config
+  (setq avy-ignored-modes '(image-mode doc-view-mode pdf-view-mode exwm-mode))
+  :custom
+  (avy-timeout-seconds 0.5)
+  (avy-style 'pre))
+;; :custom-face
+;; (avy-lead-face ((t (:background "#51afef" :foreground "#870000" :weight bold)))))
+
 
 (use-package uniquify-files
   :config
@@ -684,26 +1158,30 @@ beginning of the line it stays there."
   (setq uniquify-after-kill-buffer-p t)
   (setq uniquify-ignore-buffers-re "^\\*"))
 
-;; Show recent files in the File menu.
+(use-package no-littering
+  :doc "It’s good to have centralized working datasets storage, to prevent pollution of Emacs config directory."
+  :custom
+  (no-littering-var-directory (expand-file-name "data/" user-emacs-directory))
+  (no-littering-etc-directory (expand-file-name "config/" user-emacs-directory)))
+
+(setq auto-save-file-name-transforms
+	  `((".*" ,(no-littering-expand-var-file-name "auto-save/") t)))
+
+;;; Show recent files in the File menu.
 (use-package recentf
   :doc "Recent buffers in a new Emacs session"
-  :config
-  (setq recentf-auto-cleanup 'never
-        recentf-max-saved-items 500
-        recentf-max-menu-items 60
-        recentf-save-file (concat user-emacs-directory ".recentf"))
-  (recentf-mode t)
-  :delight)
+  :hook (after-init . recentf-mode)
+  :custom
+  (recentf-auto-cleanup 'never) ; "05:00am") ; or, recentf-auto-cleanup 'never
+  (recentf-max-saved-items 300)
+  (recentf-max-menu-items 50))
 
 (use-package magit
   :doc "Git integration for Emacs"
-  :ensure t
   :bind ("C-x g" . magit-status)
   :delight)
 
-
 (use-package git-gutter
-  :ensure t
   :diminish
   :hook ((prog-mode org-mode) . git-gutter-mode )
   ;;✘
@@ -715,26 +1193,36 @@ beginning of the line it stays there."
   (set-face-foreground 'git-gutter:modified "Gold")
   (set-face-foreground 'git-gutter:deleted "Red"))
 
-(use-package ibuffer
-  :doc "Better buffer management"
-  :bind ("C-x C-b" . ibuffer)
-  :delight)
-
 (use-package all-the-icons
   :if (display-graphic-p))
-;;  :config (all-the-icons-install-fonts 'install-without-asking))
+(defun aorst/font-installed-p (font-name)
+  "Check if font with FONT-NAME is available."
+  (if (find-font (font-spec :name font-name))
+      t
+    nil))
+(use-package all-the-icons
+  :config
+  (when (and (not (aorst/font-installed-p "all-the-icons"))
+             (window-system))
+    (all-the-icons-install-fonts t)))
+;; If you experience a slow down in performance when rendering multiple icons simultaneously, you can try setting the following variable:
+(setq inhibit-compacting-font-caches t)
+
+;; :config (all-the-icons-install-fonts 'install-without-asking))
 ;; (cl-defun all-the-icons-faicon (icon &rest _)
-;;  #("" 0 1 (rear-nonsticky t display (raise -0.24) font-lock-face (:family "FontAwesome" :height 1.2) face (:family "FontAwesome" :height 1.2)))))
+;;   #("" 0 1 (rear-nonsticky t display (raise -0.24) font-lock-face (:family "FontAwesome" :height 1.2) face (:family "FontAwesome" :height 1.2)))))
 
 (use-package which-key
-  :ensure t
   :init
   (which-key-mode)
   (setq which-key-sort-order 'which-key-key-order-alpha
         which-key-idle 0.5
         which-key-idle-dely 50)
   (which-key-setup-minibuffer))
-;  (which-key-setup-side-window-right)
+;; :custom
+;; (which-key-separator " ")
+;; (which-key-prefix-prefix "+")
+;; (which-key-setup-side-window-right))
 
 ;; Goto last change
 ;; Sometimes it's useful to step to the last changes in a buffer.
@@ -743,107 +1231,165 @@ beginning of the line it stays there."
 
 ;; Allow tree-semantics for undo operations.
 (use-package undo-tree
-  :diminish                       ;; Don't show an icon in the modeline
+  :diminish undo-tree-mode
   :bind ("C-x u" . undo-tree-visualize)
   :hook (org-mode . undo-tree-mode) ;; For some reason, I need this. FIXME.
-  :config
-    ;; Always have it on
-    (global-undo-tree-mode)
-
-    ;; Each node in the undo tree should have a timestamp.
-    (setq undo-tree-visualizer-timestamps t)
-
-    ;; Show a diff window displaying changes between undo nodes.
-    (setq undo-tree-visualizer-diff t))
+  :init (global-undo-tree-mode)
+  :custom
+  ;; Show a diff window displaying changes between undo nodes.
+  (undo-tree-visualizer-diff t)
+  ;; Prevent undo tree files from polluting your git repo
+  (undo-tree-history-directory-alist '(("." . "~/.emacs.d/var/undo-tree-hist")))
+  ;; Each node in the undo tree should have a timestamp.
+  (undo-tree-visualizer-timestamps t))
 
 (use-package winner
   :doc "a minor mode that records your window configurations and lets you undo and redo changes made to it."
   :config
   (winner-mode 1)
   :bind (("M-[" . winner-undo)
-         ("M-]" . winner-redo)))
+         ("M-]" . winner-redo))
+  :custom
+  (winner-boring-buffers
+   '("*Completions*"
+     "*Compile-Log*"
+     "*inferior-lisp*"
+     "*Fuzzy Completions*"
+     "*Apropos*"
+     "*Help*"
+     "*cvs*"
+     "*Buffer List*"
+     "*Ibuffer*"
+     "*esh command on file*")))
 
 (use-package aggressive-indent
   :doc "Intended Indentation"
-  :ensure t
-  :config
-  ;; (add-hook 'before-save-hook 'aggressive-indent-indent-defun)
-  ;; Have a way to save without indentation.
-  ;; (defun save-without-aggresive-indentation ()
-  ;;   (interactive)
-  ;;   (remove-hook 'before-save-hook 'aggressive-indent-indent-defun)
-  ;;   (save-buffer)
-  ;;   (add-hook 'before-save-hook 'aggressive-indent-indent-defun))
-  ;; :bind (("C-x s" . save-without-aggresive-indentation))
+  :init
+  (add-hook 'prog-mode-hook #'aggressive-indent-mode)
   :delight)
-(add-hook 'prog-mode-hook #'aggressive-indent-mode)
+
+;; Opening Files Externally
+(use-package openwith
+  :config
+  (setq openwith-associations
+        (list
+         (list (openwith-make-extension-regexp
+                '("mpg" "mpeg" "mp3" "mp4"
+                  "avi" "wmv" "wav" "mov" "flv"
+                  "ogm" "ogg" "mkv"))
+               "mpv"
+               '(file))
+         (list (openwith-make-extension-regexp
+                '("xbm" "pbm" "pgm" "ppm" "pnm"
+                  "png" "gif" "bmp" "tif" "jpeg")) ;; Removed jpg because Telega was
+               ;; causing feh to be opened...
+               "sxiv"
+               '(file))
+         (list (openwith-make-extension-regexp
+                '("pdf"))
+               "zathura"
+               '(file)))))
 
 (use-package beacon
-  :ensure t
   :init
   (beacon-mode t)
-  (setq beacon-color "#50D050") ;; a light green
-  )
+  (setq beacon-color "#50D050"))
+
+(use-package emojify
+  :if (display-graphic-p)
+  :hook (after-init . global-emojify-mode)
+  :custom
+  (emojify-emoji-styles '(unicode)))
+
+(use-package alert
+  :commands alert
+  :config
+  (setq alert-default-style 'notifications))
 
 (use-package rainbow-delimiters
-  :ensure t
   :config
   (add-hook 'prog-mode-hook #'rainbow-delimiters-mode))
 
-(use-package doom-themes
+(use-package solaire-mode
+  :custom (solaire-mode-remap-fringe t)
   :config
-  (setq doom-themes-enable-bold t 	 ; if nil, bold is universally disabled
-        doom-themes-enable-italic t  ; if nil, italics is universally disabled
-        doom-themes-treemacs-theme "doom-colors") ; doom-atom or use "doom-colors" for less minimal icon theme
+  (solaire-global-mode +1))
+
+(setq custom-safe-themes t)
+(use-package doom-themes
+  :custom-face
+  (cursor ((t (:background "BlanchedAlmond"))))
+  :config
+  (setq doom-themes-enable-bold t
+        doom-themes-enable-italic t)
+  ;; Enable flashing mode-line on errors
+  (doom-themes-visual-bell-config)
   (load-theme 'doom-gruvbox t)
-  (doom-themes-visual-bell-config)	 ; Enable flashing mode-line on errors
-  (doom-themes-neotree-config)	 ; Enable custom neotree theme (all-the-icons must be installed!)
-  (doom-themes-org-config)		  ; Corrects (and improves) org-mode's native fontification.
-  )
+  (if (display-graphic-p)
+      (progn
+        ;; Enable custom neotree theme (all-the-icons must be installed!)
+        (doom-themes-neotree-config)
+        ;; or for treemacs users
+        (setq doom-themes-treemacs-theme "doom-colors") ; use the colorful treemacs theme
+        (doom-themes-treemacs-config)
+        ))
+  ;; Corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
+;; ───────────────────────────────── MODE-LINE ─────────────────────────────────
+;; When displaying the time with display-time-mode, I don’t care about the load average.
+;; (setq display-time-default-load-average nil)
+;; (display-time-mode)
+;; (setq display-time-format "%l:%M%P (%a) %e %b ♪") ; %D for date format
+;; (setq battery-mode-line-format "[%b%p%% %t]")
+;; (display-battery-mode)
+;; (size-indication-mode)
+
+(use-package minions
+  :hook (doom-modeline-mode . minions-mode))
 
 (use-package doom-modeline
-  :ensure t
-  :init
-  (setq doom-modeline-env-enable-python nil
-        doom-modeline-env-enable-go nil
-        doom-modeline-buffer-encoding 'nondefault
-        doom-modeline-hud t
-        doom-modeline-persp-icon nil
-        doom-modeline-persp-name nil
-        doom-modeline-display-misc-in-all-mode-lines nil)
-  :config
-  (setq doom-modeline-minor-modes nil
-        doom-modeline-irc nil
-        doom-modeline-buffer-state-icon nil
-        doom-modeline-lsp t
-        ;; doom-modeline-height 1
-        ;; doom-modeline-bar-width 3
-        doom-modeline-project-detection 'project)
-  (doom-modeline-mode 1))
-
+  :init (doom-modeline-mode)
+  :custom
+  ;; Don't compact font caches during GC. Windows Laggy Issue
+  (inhibit-compacting-font-caches t)
+  (doom-modeline-major-mode-icon t)
+  (doom-modeline-major-mode-color-icon t)
+  (doom-modeline-icon (display-graphic-p))
+  (doom-modeline-buffer-modification-icon t)
+  (doom-modeline-flycheck-icon t)
+  (doom-modeline-checker-simple-format t)
+  (doom-modeline-buffer-encoding nil)
+  (doom-modeline-height 35))
+;; (set-face-background 'mode-line nil)
+;; ────────────────────────────────── IVY-MODE ─────────────────────────────────
 (use-package ivy
   :doc "A generic completion mechanism"
-  :ensure t
-  :config
-  (ivy-mode t)
-  (setq ivy-use-virtual-buffers t
-        ;; Display index and count both.
-        ivy-count-format "(%d/%d) "
-        ;; By default, all ivy prompts start with `^'. Disable that.
-        ivy-initial-inputs-alist nil)
-
+  :init (ivy-mode 1)
   :bind (("C-x b" . ivy-switch-buffer)
          ("C-x B" . ivy-switch-buffer-other-window)
-         ("C-c C-r" . ivy-resume)
          ("<f6>" . ivy-resume)
-         ("C-c v" . ivy-push-view)
-  		 ("C-c V" . ivy-pop-view))
+  	     ("C-c v" . ivy-push-view)
+  	     ("C-c V" . ivy-pop-view)
+         ("C-c C-r" . ivy-resume)
+         :map ivy-minibuffer-map
+         ("C-l" . ivy-alt-done)
+         ("C-j" . ivy-next-line)
+         ("C-k" . ivy-previous-line)
+         ("C-d" . ivy-switch-buffer-kill))
+  :custom
+  (ivy-use-virtual-buffers t)
+  (ivy-truncate-lines t)
+  (ivy-wrap t)
+  (ivy-use-selectable-prompt t)
+  (ivy-count-format "[%d/%d] ")
+  (enable-recursive-minibuffers t)
+  ;; By default, all ivy prompts start with `^'. Disable that.
+  (ivy-initial-inputs-alist nil)
   :delight)
-
+(use-package ivy-avy)
+(use-package ivy-hydra)
 (use-package ivy-rich
   :doc "Have additional information in empty space of ivy buffers."
-  :disabled t
-  :ensure t
   :custom
   (ivy-rich-path-style 'abbreviate)
   :config
@@ -854,21 +1400,19 @@ beginning of the line it stays there."
 
 (use-package ivy-posframe
   :doc "Custom positions for ivy buffers."
-  :ensure t
+  :after ivy
+  :custom
+  (ivy-posframe-border-width 6)
   :config
   (when (member "Hasklig" (font-family-list))
     (setq ivy-posframe-parameters
           '((font . "Hasklig"))))
-
-  (setq ivy-posframe-border-width 10)
-
   (setq ivy-posframe-display-functions-alist
         '((complete-symbol . ivy-posframe-display-at-point)
           (swiper . ivy-display-function-fallback)
           (swiper-isearch . ivy-display-function-fallback)
           (counsel-rg . ivy-display-function-fallback)
           (t . ivy-posframe-display-at-frame-center)))
-
   (ivy-posframe-mode t)
   :delight)
 
@@ -880,13 +1424,10 @@ beginning of the line it stays there."
 
 (use-package swiper
   :doc "A better search"
-  :ensure t
-  :bind (("C-s" . swiper)) ; ("C-s" . swiper-isearch))
+  :bind (("C-s" . swiper-isearch)) ; ("C-s" . swiper))
   :delight)
-
-;; it looks like counsel is a requirement for swiper
+;; ──────────────────────────────── COUNSEL-MODE ───────────────────────────────
 (use-package counsel
-  :ensure t
   :bind (("M-x" . counsel-M-x)
          ("M-y" . counsel-yank-pop)
          ("C-x b" . counsel-switch-buffer)
@@ -901,7 +1442,7 @@ beginning of the line it stays there."
          ("C-c m" . counsel-linux-app)
          ("C-c n" . counsel-fzf)
          ("C-c o" . counsel-outline)
-         ("C-c T" . counsel-load-theme)
+         ;; ("C-c T" . counsel-load-theme)
          ("C-c z" . counsel-bookmark)
          ("C-x C-r" . counsel-recentf)
          ("C-x C-f" . counsel-find-file)
@@ -920,223 +1461,168 @@ beginning of the line it stays there."
   :delight)
 
 (use-package projectile
-  :ensure t
+  :custom
+  (projectile-enable-caching t)
+  (projectile-completion-system 'ivy)
   :config
-  (projectile-mode +1))
+  (projectile-mode))
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 
 (use-package expand-region
-  :bind ("C-=" . er/expand-region))
+  :bind (("C-=" . er/expand-region)
+         ("C--" . er/contract-region)
+         ("C-(" . er/mark-outside-pairs)))
+;; ───────────────────────────────── FLY-CHECK ─────────────────────────────────
+
+;; Explanation-Mark !
+;; (when window-system
+;;   (define-fringe-bitmap 'flycheck-fringe-bitmap-double-arrow
+;;     [0 24 24 24 24 24 24 0 0 24 24 0 0 0 0 0 0]))
+
+;; BIG BitMap-Arrow
+;; (when (fboundp 'define-fringe-bitmap)
+;;   (define-fringe-bitmap 'flycheck-fringe-bitmap-double-arrow
+;;     [0 0 0 0 0 4 12 28 60 124 252 124 60 28 12 4 0 0 0 0]))
 
 (use-package flycheck
-  :ensure t)
-(add-hook 'prog-mode-hook #'flycheck-mode)
+  :hook (prog-mode . flycheck-mode)
+  :bind (("M-g M-j" . flycheck-next-error)
+         ("M-g M-k" . flycheck-previous-error)
+         ("M-g M-l" . flycheck-list-errors))
+  :config
+  (setq flycheck-indication-mode 'right-fringe
+        flycheck-check-syntax-automatically '(save mode-enabled))
+  ;; Small BitMap-Arrow
+  (when (fboundp 'define-fringe-bitmap)
+    (define-fringe-bitmap 'flycheck-fringe-bitmap-double-arrow
+      [16 48 112 240 112 48 16] nil nil 'center))
+  :custom-face
+  (flycheck-warning ((t (:underline (:color "#fabd2f" :style line :position line)))))
+  (flycheck-error ((t (:underline (:color "#fb4934" :style line :position line)))))
+  (flycheck-info ((t (:underline (:color "#83a598" :style line :position line))))))
 
-(use-package company-box
-  :hook (company-mode . company-box-mode))
+(use-package flycheck-popup-tip
+  :config
+  (add-hook 'flycheck-mode-hook 'flycheck-popup-tip-mode))
 
-(use-package company
-  :ensure t
-  :diminish company-mode
+(use-package flycheck-clang-tidy
+  :after flycheck
   :hook
-  (after-init . global-company-mode)
-  :bind
-  (:map company-active-map
-        ("C-h"        . nil)
-        ("C-j"        . nil)
-        ("C-k"        . nil)
-        ("C-n"        . nil)
-        ("C-p"        . nil)
-        ("C-w"        . nil)
-        ("RET"        . nil)
-        ("<return>"   . nil)
-        ("SPC"        . nil)    ; Prevent SPC from ever triggering a completion.
-        ("M-n"        . nil)
-        ("M-p"        . nil)
-        ("M-TAB"      . company-complete)
-        ("M-/"        . company-yasnippet)
-        ("M-."        . company-show-location)
-        ("C-c C-/"    . company-other-backend)
-                                        ;        ("C-<return>"        . company-complete-selection)
-        ("C-l"        . company-complete-selection)
-        ("<tab>"      . company-indent-or-complete-common)
-        ("TAB"        . company-indent-or-complete-common)
-        ("C-j"        . company-select-next)
-        ("C-k"        . company-select-previous)
-        ("C-d"        . company-show-doc-buffer)
-        ("C-s"        . company-filter-candidates))
-  (:map company-search-map    ; applies to `company-filter-map' too
-        ("C-h"        . nil)
-        ("C-j"        . nil)
-        ("C-k"        . nil)
-        ("C-n"        . nil)
-        ("C-p"        . nil)
-        ("C-j"        . company-select-next-or-abort)
-        ("C-k"        . company-select-previous-or-abort)
-        ("C-s"        . company-filter-candidates)
-        ([escape]     . company-search-abort))
-  ;; :init
-  ;; (add-hook 'c-mode-common-hook 'company-mode)
-  ;; (add-hook 'c++-mode-hook 'company-mode)
-  ;; (add-hook 'sql-mode-hook 'company-mode)
-  :init
-  (setq company-idle-delay 0.0
-        company-echo-delay 0
-        company-show-numbers t
-        completion-ignore-case t
-        company-show-quick-access t
-        company-selection-wrap-around t
-        company-minimum-prefix-length 2
-        company-auto-complete-chars nil
-        company-dabbrev-code-everywhere t
-        company-dabbrev-code-modes t
-        company-dabbrev-ignore-case nil
-        company-debbrev-other-buffers 'all
-        company-dabbrev-downcase nil
-        company-tooltip-limit 10
-        company-tooltip-align-annotations t
-        company-tooltip-minimum company-tooltip-limit
-        company-require-match #'company-explicit-action-p
-        company-frontends '(company-pseudo-tooltip-frontend)
-        company-transformers '(company-sort-prefer-same-case-prefix))
-  :config
-  (setq company-backends
-        '((company-capf
-           company-keywords
-           company-semantic
-           company-files
-           company-gtags
-           company-etags
-           company-elisp
-           company-clang
-           company-irony-c-headers
-           company-irony
-           company-jedi
-           company-cmake
-           company-ispell
-           company-yasnippet
-           company-dabbrev
-           company-dabbrev-code))))
-;; Use tab key to cycle through suggestions. ('tng' means 'tab and go')
-; (company-tng-configure-default)
+  (flycheck-mode . flycheck-clang-tidy-setup))
 
-(use-package company-quickhelp
-  :after company
-  :config
-  (setq company-quickhelp-idle-delay 0.1)
-  (company-quickhelp-mode 1))
+;; syntax highlight of the latest C++ language.
+(use-package modern-cpp-font-lock)
+(add-hook 'c++-mode-hook #'modern-c++-font-lock-mode)
 
-;; This package adds usage-based sorting to Company
-;; completions. (Perhaps it too can be replaced by `historian' one day!)
-(use-package company-statistics
-  :ensure t
-  :after company
-  :config
-  (company-statistics-mode))
+;; ──────────────────────────────── Code-Folding ───────────────────────────────
+(defun hs-mode-and-hide ()
+  "Turn on code folding and folds all code blocks."
+  (interactive)
+  (hs-minor-mode)
+  (hs-hide-all))
 
-(use-package yasnippet
-  :ensure t
+;; code folding
+(add-hook 'prog-mode-hook 'hs-mode-and-hide)
+(global-set-key (kbd "C-c h") 'hs-hide-all)
+(global-set-key (kbd "C-c s") 'hs-show-all)
+(global-set-key (kbd "S-<backspace>") 'hs-hide-block)
+(global-set-key (kbd "C-<backspace>") 'hs-show-block)
+(global-set-key (kbd "<backtab>") 'hs-toggle-hiding) ; fold the current section
+(global-set-key (kbd "C-<tab>") 'hs-hide-level) ; fold the sub sections of the current section
+
+;; Center text in the frame, looks nice ;)
+(use-package olivetti
+  :diminish
+  :hook (text-mode . olivetti-mode)
+  :hook (prog-mode . olivetti-mode)
+  :hook (Info-mode . olivetti-mode)
   :config
-;  (yas-global-mode 1)
-  (use-package yasnippet-snippets
-    :ensure t)
-  (yas-reload-all))
-(add-hook 'prog-mode-hook #'yas-minor-mode)
-(setq yas-snippet-dirs
-      '("~/.emacs.d/snippets"                 ;; personal snippets
-                                        ;        "/path/to/some/collection/"           ;; foo-mode and bar-mode snippet collection
-                                        ;        "/path/to/yasnippet/yasmate/snippets" ;; the yasmate collection
+  (setq olivetti-body-width 130))
+;; ──────────────────────────────────── SHELL ───────────────────────────────────
+(setq eshell-prompt-regexp "^[^#$\n]*[#$] "
+      eshell-prompt-function
+      (lambda nil
+        (concat
+         (propertize "[" 'face '(:foreground "red" :weight bold))
+         (propertize (user-login-name) 'face '(:foreground "yellow" :weight bold))
+         (propertize "@" 'face '(:foreground "green" :weight bold))
+         (propertize (system-name) 'face '(:foreground "blue" :weight bold))" "
+         (if (string= (eshell/pwd) (getenv "HOME"))
+             (propertize "~" 'face '(:foreground "tomato" :weight bold))
+           (propertize (eshell/basename (eshell/pwd)) 'face '(:foreground "magenta")))
+         (propertize "]" 'face '(:foreground "red" :weight bold))
+         (if (= (user-uid) 0) "# "
+           (concat  "$ " )))))
+
+(setq display-buffer-alist '(("\\`\\*e?shell" display-buffer-pop-up-window)))
+
+(global-set-key (kbd "C-!") 'eshell)
+
+(defun eshell/x ()
+  "Cmnd `x' exits that shell and closes that window."
+  (insert "exit")
+  (eshell-send-input)
+  (delete-window))
+
+;;; Eshell
+;; https://www.masteringemacs.org/article/complete-guide-mastering-eshell Eshell is
+;; an elisp shell. It has its own configuration parameters, distinct from those of
+;; shell or ansi-terminal.
+;;;; Eshell Settings
+(setq eshell-directory-name (concat user-emacs-directory "etc/eshell")
+      eshell-history-file-name (concat user-emacs-directory "etc/eshell/history")
+      eshell-aliases-file (concat user-emacs-directory "etc/eshell/alias")
+      eshell-last-dir-ring-file-name (concat user-emacs-directory "etc/eshell/lastdir")
+      eshell-prefer-lisp-functions nil
+      eshell-highlight-prompt nil
+      eshell-buffer-shorthand t
+      eshell-cmpl-ignore-case t
+      eshell-history-size 10000
+      eshell-hist-ignoredups t
+      eshell-save-history-on-exit t
+      eshell-cmpl-cycle-completions t
+      eshell-destroy-buffer-when-process-dies t
+      ;; auto truncate after 20k lines
+      eshell-buffer-maximum-lines 20000
+      eshell-error-if-no-glob t
+      eshell-glob-case-insensitive t
+      eshell-scroll-to-bottom-on-input 'all
+      eshell-destroy-buffer-when-process-dies t
+      eshell-list-files-after-cd t)
+
+;; Visual commands
+(setq eshell-visual-commands
+      '("ranger" "vi" "screen" "top" "less" "more" "lynx"
+        "ncftp" "pine" "tin" "trn" "elm" "vim"
+        "nmtui" "alsamixer" "htop" "el" "elinks"
         ))
+(setq eshell-visual-subcommands '(("git" "log" "diff" "show")))
 
-;; ─────────────────────────────────── C/C++ ─────────────────────────────────── ;;
-;; (add-hook 'c++-mode-hook 'yas-minor-mode)
-;; (add-hook 'c-mode-hook 'yas-minor-mode)
-
-;; (use-package flycheck-clang-analyzer
-;;   :ensure t
-;;   :config
-;;   (with-eval-after-load 'flycheck
-;;     (require 'flycheck-clang-analyzer)
-;;      (flycheck-clang-analyzer-setup)))
-
-;; (with-eval-after-load 'company
-;;   (add-hook 'c++-mode-hook 'company-mode)
-;;   (add-hook 'c-mode-hook 'company-mode))
-
-;; (use-package company-c-headers
-;;   :ensure t)
-
-;; (use-package company-irony
-;;   :ensure t
-;;   :config
-;;   (setq company-backends '((company-c-headers
-;;                             company-dabbrev-code
-;;                             company-irony))))
-
-;; (use-package irony
-;;   :ensure t
-;;   :config
-;;   (add-hook 'c++-mode-hook 'irony-mode)
-;;   (add-hook 'c-mode-hook 'irony-mode)
-;;   (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
-
-;; ──────────────────────────────────── Bash ─────────────────────────────────── ;;
 (add-hook 'shell-mode-hook 'yas-minor-mode)
 (add-hook 'shell-mode-hook 'flycheck-mode)
 (add-hook 'shell-mode-hook 'company-mode)
 
 (defun shell-mode-company-init ()
+  "Company for terminal."
   (setq-local company-backends '((company-shell
                                   company-shell-env
                                   company-etags
                                   company-dabbrev-code))))
 
 (use-package company-shell
-  :ensure t
-  :config
-    (require 'company)
-    (add-hook 'shell-mode-hook 'shell-mode-company-init))
+:config
+(require 'company)
+(add-hook 'shell-mode-hook 'shell-mode-company-init))
 
 ;; Required for proportional font
 (use-package company-posframe
   :config
   (company-posframe-mode t))
 
-(use-package company-wordfreq
-  :ensure t)
-
-(use-package avy
-  :ensure t
-  :config
-  (setq avy-timeout-seconds 0.5)
-  (setq avy-ignored-modes
-	    '(image-mode doc-view-mode pdf-view-mode exwm-mode)))
-(global-set-key (kbd "C-'") 'avy-goto-char)
-(global-set-key (kbd "C-:") 'avy-goto-char-2)
-(global-set-key (kbd "M-g f") 'avy-goto-line)
-(global-set-key (kbd "M-g w") 'avy-goto-word-1)
-(global-set-key (kbd "M-g e") 'avy-goto-word-0)
-(global-set-key (kbd "C-c C-j") 'avy-resume)
-
-;; Nyan Cat is lovely, it can live on mode line
-(use-package nyan-mode
-  :ensure t
-  :init
-  (setq nyan-animate-nyancat t)
-  (setq nyan-wavy-trail t)
-  (setq nyan-minimum-window-width 80)
-  (setq nyan-bar-length 75)
-  (nyan-mode))
-
-;; ──────────────────────────────── Basic Utils ──────────────────────────────── ;;
-(use-package no-littering
-  :doc "It’s good to have centralized working datasets storage, to prevent pollution of Emacs config directory."
-  :ensure t
-  :custom
-  (no-littering-var-directory (expand-file-name "data/" user-emacs-directory)))
-
-;; never want whitespace at the end of lines. Remove it on save.
-(add-hook 'before-save-hook 'delete-trailing-whitespace)
+(use-package company-wordfreq)
+;; ──────────────────────────────── Basic Utils ────────────────────────────────
+(add-function :after after-focus-change-function (lambda () (unless (frame-focus-state) (save-some-buffers t)))) ; Garbage collection on focus-out, Emacs should feel snappier
+(add-hook 'before-save-hook 'delete-trailing-whitespace) ;Remove trailing whitespace on save
 
 ;; Browse source tree with Speedbar file browser
 (setq speedbar-show-unknown-files t)
@@ -1144,13 +1630,13 @@ beginning of the line it stays there."
 
 ;; ──────────── This snippet loads all *.el files in a directory ─────────── ;;
 (defun load-directory (dir)
+  "Load all *.el from your .emacs.d directory."
   (let ((load-it (lambda (f)
                    (load-file (concat (file-name-as-directory dir) f)))))
     (mapc load-it (directory-files dir nil "\\.el$"))))
 (load-directory "~/.emacs.d/elpa/")
 
-;; ─────────────────────── Open Any File With LineNumber ─────────────────────── ;;
-;; i.e. myfile.cpp:12
+;; ─────────────────────── Open Any File With LineNumber ───────────────────────
 (defadvice find-file (around find-file-line-number
                              (filename &optional wildcards)
                              activate)
@@ -1167,10 +1653,28 @@ beginning of the line it stays there."
         (goto-char (point-min))
         (forward-line (1- line-number))))))
 
-(provide 'init)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; init.el ends here
+
 (put 'scroll-left 'disabled nil)
 (put 'narrow-to-page 'disabled nil)
 (put 'narrow-to-region 'disabled nil)
 (put 'dired-find-alternate-file 'disabled nil)
+
+;; Don’t forget to restore file-name-handler-alist, otherwise TRAMP won’t work and compressed/encrypted files won’t open.
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (setq file-name-handler-alist doom--file-name-handler-alist)))
+
+;; InitPrivate
+;; Load init-private.el if it exists
+(when (file-exists-p (expand-file-name "init-private.el" user-emacs-directory))
+  (load-file (expand-file-name "init-private.el" user-emacs-directory)))
+;; -InitPrivate
+
+;;; Finish up
+(provide 'init)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; init.el ends here
+;; Local Variables:
+;; byte-compile-warnings: (not free-vars)
+;; compile-command: "g++ project.cpp && ./a.out"
+;; End:

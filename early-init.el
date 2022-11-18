@@ -1,13 +1,13 @@
-;;; early-init.el --- Early initialization -*- lexical-binding: t; no-byte-compile: t -*-
+;;; early-init.el --- -*- lexical-binding: t; no-byte-compile: t -*-
 ;;
 ;; Filename: early-init.el
 ;; Description: Early initialization
-;; Author: Mingde (Matthew) Zeng
-;; Copyright (C) 2019 Mingde (Matthew) Zeng
-;; Created: Sun Jun  9 17:58:05 2019 (-0400)
-;; Version: 3.0
-;; URL: https://github.com/MatthewZMD/.emacs.d
-;; Keywords: M-EMACS .emacs.d init early-init
+;; Author: Likhon Sapiens
+;; Copyright © 2022 Likhon Sapiens
+;; Created: Fri Nov 11 10:15:28 2022 (-0400)
+;; Version: 0.1
+;; URL: https://github.com/Likhon-baRoy/.emacs.d
+;; Keywords: Z-MACS .emacs.d init early-init
 ;; Compatibility: emacs-version >= 27
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

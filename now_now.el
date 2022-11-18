@@ -1,20 +1,20 @@
 ;;; init.el --- -*- lexical-binding: t -*-
 ;;
 ;; Filename: init.el
-;; Description: Initialize M-EMACS
-;; Author: Mingde (Matthew) Zeng
-;; Copyright (C) 2019 Mingde (Matthew) Zeng
-;; Created: Thu Mar 14 10:15:28 2019 (-0400)
-;; Version: 3.0
-;; URL: https://github.com/MatthewZMD/.emacs.d
-;; Keywords: M-EMACS .emacs.d init
-;; Compatibility: emacs-version >= 26.1
+;; Description: Initialize Z-MACS (obviously Emacs :smile:)
+;; Author: Likhon Sapiens
+;; Copyright © 2022 Likhon Sapiens
+;; Created: Thu Oct 29 10:15:28 2022 (-0400)
+;; Version: 0.1
+;; URL: https://github.com/Likhon-baRoy/.emacs.d
+;; Keywords: Z-MACS .emacs.d init
+;; Compatibility: emacs-version >= 27.1
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;;; Commentary:
 ;;
-;; This is the init.el file for M-EMACS
+;; This is the init.el file for Z-MACS
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -120,7 +120,6 @@ If you experience stuttering, increase this.")
 
 (global-set-key (kbd "C-c T") 'switch-theme)
 
-
 ;; ────────────────────────────────── ENCODING ─────────────────────────────────
 (set-default-coding-systems 'utf-8-unix)
 (prefer-coding-system 'utf-8-unix)
@@ -143,33 +142,18 @@ If you experience stuttering, increase this.")
         ;; ("gnu-cn"   . "http://mirrors.cloud.tencent.com/elpa/gnu/")
         ))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Non-Melpa Packages
-
-;; Add packages contained in site-elisp/ to load-path too.
-;; Add Packages Manually from Git
-
-;; cd site-elisp/
-;; git submodule add https://github.com/foo/bar.git
-
-;; Verify .gitmodules file that the newly added package exist.
-;; Update Manually Added Packages
-
-;; git submodule init
-;; git submodule update
-
 (require 'cl)
 (require 'package)
 ;; Configure Package Manager
 (unless (bound-and-true-p package--initialized)
-  (setq package-enable-at-startup nil)          ; To prevent initializing twice
+  (setq package-enable-at-startup nil) ; To prevent initializing twice
   (package-initialize))
 
 ;; set use-package-verbose to t for interpreted .emacs,
 ;; and to nil for byte-compiled .emacs.elc.
 (eval-and-compile
   (setq use-package-verbose (not (bound-and-true-p byte-compile-current-file))))
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 
 ;; Install use-package if not installed
@@ -209,11 +193,10 @@ If you experience stuttering, increase this.")
   :init (gcmh-mode 1)
   :config
   (setq
-   gcmh-idle-delay 'auto  ; default is 15s
+   gcmh-idle-delay 'auto ; default is 15s
    gcmh-auto-idle-delay-factor 10
-   gcmh-high-cons-threshold (* 16 1024 1024))  ; 16mb
+   gcmh-high-cons-threshold (* 16 1024 1024)) ; 16mb
   )
-
 ;; ────────────────────────────────── ORG-MODE ─────────────────────────────────
 (setq org-latex-inputenc-alist '(("utf8" . "utf8x")))
 (when window-system (global-prettify-symbols-mode t))
@@ -462,7 +445,7 @@ If you experience stuttering, increase this.")
                             company-cmake
                             company-yasnippet
                             company-c-headers
-                            ;; company-clang     ; it's too slow
+                            ;; company-clang     ; too much slow
                             ;; company-ispell
                             ;; company-irony-c-headers
                             ;; company-irony
@@ -588,13 +571,14 @@ If you experience stuttering, increase this.")
 
 ;; (global-unset-key (kbd "<escape>"))
 ;; (global-set-key (kbd "<escape>") (kbd "C-g"))
+
 ;; Start proced in a similar manner to dired
 (global-set-key (kbd "M-<f12>") #'proced)
 
 (define-key esc-map "&" 'query-replace-regexp)		; redefined ESC-&.
 (global-set-key (kbd "M-#") 'query-replace-regexp)
 (global-set-key (kbd "M-\"") 'insert-pair)			; Wrap text in quotes.
-;; (global-set-key (kbd "TAB") 'self-insert-command)	; To make sure that emacs is actually using TABS instead of SPACES.
+;; (global-set-key (kbd "TAB") 'self-insert-command)	; To make sure that emacs is actually using `TABS' instead of `SPACES'.
 
 ;; I use C-h for backspace in Emacs and move `help-command' elsewhere:
 (global-set-key "\^h" 'backward-delete-char)
@@ -658,7 +642,6 @@ If you experience stuttering, increase this.")
 (global-set-key (kbd "M-t e") 'transpose-sexps)
 (global-set-key (kbd "M-t s") 'transpose-sentences)
 (global-set-key (kbd "M-t p") 'transpose-paragraphs)
-(global-set-key (kbd "M-<f1>") 'emojify-insert-emoji)
 
 ;; ──────────────────────────────────── GDB ────────────────────────────────────
 ;; Show main source buffer when using GDB
@@ -667,6 +650,7 @@ If you experience stuttering, increase this.")
 
 ;; ─────────────────────────────────── C/C++ ───────────────────────────────────
 (defun compile-and-run()
+  "Run C++ program directly from within Emacs."
   (interactive)
   (save-buffer)
   (compile (concat "g++ " (file-name-nondirectory (buffer-file-name)) " -o "
@@ -674,23 +658,22 @@ If you experience stuttering, increase this.")
                    (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))) t )
   (other-window 1)
   (goto-char (point-max)))
+
 (defun exit-after-compile-hook (cur-buffer msg)
-  ;; nil: Don't kill the window.
-  ;; 0: Affect visible and iconified frames.
+  "When nil: Don't kill the window.  0: Affect visible and iconified frames."
   (when (y-or-n-p "Quit window? ")
     (quit-window nil (get-buffer-window cur-buffer 0))))
-
 (add-hook 'compilation-finish-functions #'exit-after-compile-hook)
 
 (define-key c++-mode-map [f5] #'compile-and-run)
+
 ;; (with-eval-after-load "cc-mode" (define-key c++-mode-map [f5] #'compile))
-;; Run C programs directly from within emacs
 
 ;; (add-hook 'c++-mode-hook
 ;;           (lambda () (global-set-key (kbd "<f5>") #'compileandrun)))
 
 (defun cpp ()
-  "Compile with ./a.out name and Run."
+  "Compile output as `./a.out' and Run program directly from within Emacs."
   (interactive)
   (async-shell-command (concat "g++ " (buffer-file-name) " && ./a.out") "*c++ output*")
   (other-window 1)
@@ -699,12 +682,12 @@ If you experience stuttering, increase this.")
 (define-key c++-mode-map [f12] #'cpp)
 
 (defun c-program ()
-  "Compile with ./a.out and Run."
+  "Compile with `./a.out' and Run program within `eshell'."
   (interactive)
   (async-shell-command (concat "gcc " (buffer-file-name) " && ./a.out") "*c output*")
   (other-window 1)
   (goto-char (point-max)))
-(define-key c-mode-map [f12] #'c-program)
+(define-key c-mode-map [f5] #'c-program)
 ;;________________________________________________________________
 ;;    Separte Customization from init file
 ;;________________________________________________________________
@@ -819,16 +802,16 @@ If you experience stuttering, increase this.")
 
 ;; ──────────────────────── General But Better Defaults ────────────────────────
 (setq-default
- ad-redefinition-action 'accept                   ; Silence warnings for redefinition.
- confirm-kill-emacs 'yes-or-no-p                  ; Confirm before exiting Emacs.
- cursor-in-non-selected-windows nil               ; Hide the cursor in inactive windows.
+ ad-redefinition-action 'accept     ; Silence warnings for redefinition.
+ confirm-kill-emacs 'yes-or-no-p    ; Confirm before exiting Emacs.
+ cursor-in-non-selected-windows nil ; Hide the cursor in inactive windows.
  speedbar t                         ; Quick file access with bar.
  backup-by-copying t                ; don't clobber symlinks.
  backup-directory-alist `(("."~/.emacs.d/var/backup/per-session))
  default-directory "~/"
- load-prefer-newer t 				; don't use the compiled code if its the older package.
+ load-prefer-newer t ; don't use the compiled code if its the older package.
  make-backup-files t               ; backup of a file the first time it is saved.
- delete-by-moving-to-trash t		; move deleted files to trash.
+ delete-by-moving-to-trash t       ; move deleted files to trash.
  delete-old-versions t             ; delete excess backup files silently.
  kept-new-versions 6               ; newest versions to keep when a new numbered backup is made (default: 2).
  kept-old-versions 2               ; oldest versions to keep when a new numbered backup is made (default: 2).
@@ -858,7 +841,7 @@ If you experience stuttering, increase this.")
  )
 (save-place-mode 1)
 (show-paren-mode 1)         ; Highlight matching parenthesis.
-(global-auto-revert-mode 1) ; Automatically revert a buffer when it changes on disk.
+(global-auto-revert-mode 1) ; Automatically revert buffer when it changes on disk.
 ;; (fringe-mode '(8 . 0))      ; Enable fringe on the left for git-gutter-fringe+.
 (global-subword-mode 1)     ; Iterate through CamelCase words.
 (electric-pair-mode t)      ; Enable Matching delimeters.
@@ -876,9 +859,9 @@ If you experience stuttering, increase this.")
   (advice-add #'display-startup-echo-area-message :override #'ignore))
 
 (setq
- debug-on-error init-file-debug       ; Reduce debug output, well, unless we've asked for it.
+ debug-on-error init-file-debug     ; Reduce debug output, well, unless we've asked for it.
  jka-compr-verbose init-file-debug
- read-process-output-max (* 64 1024)  ; 64kb
+ read-process-output-max (* 64 1024); 64kb
  ;; Emacs "updates" its ui more often than it needs to, so slow it down slightly
  idle-update-delay 1.0              ; default is 0.5.
  scroll-step 1                      ; scroll with less jump.
@@ -902,17 +885,17 @@ If you experience stuttering, increase this.")
  echo-keystrokes 0.1                ; Show Keystrokes in Progress Instantly.
  delete-auto-save-files t           ; deletes buffer's auto save file when it is saved or killed with no changes in it.
  save-place-forget-unreadable-files nil
- blink-matching-paren t              ; Blinking parenthesis.
- next-line-add-newlines nil     ; don't automatically add new line, when scroll down at the bottom of a buffer.
- require-final-newline t        ; require final new line.
- mouse-sel-retain-highlight t   ; keep mouse high-lighted.
+ blink-matching-paren t             ; Blinking parenthesis.
+ next-line-add-newlines nil         ; don't automatically add new line, when scroll down at the bottom of a buffer.
+ require-final-newline t            ; require final new line.
+ mouse-sel-retain-highlight t       ; keep mouse high-lighted.
  highlight-nonselected-windows nil
- transient-mark-mode t          ; highlight the stuff you are marking.
+ transient-mark-mode t              ; highlight the stuff you are marking.
  show-paren-delay 0           		; how long to wait?
  show-paren-style 'mixed      		; alternatives are 'expression' and 'parenthesis'.
  ffap-machine-p-known 'reject       ; Don't ping things that look like domain names.
  pgtk-wait-for-event-timeout 0.001
- frame-title-format '(buffer-file-name "Emacs: %b (%f)" "Emacs: %b")   ; name of the file I am editing as the name of the window.
+ frame-title-format '(buffer-file-name "Emacs: %b (%f)" "Emacs: %b") ; name of the file I am editing as the name of the window.
  )
 ;; ─────────────────── Added functionality (Generic usecases) ──────────────────
 ;; Unfill paragraph
@@ -946,7 +929,7 @@ If you experience stuttering, increase this.")
       (progn
         (insert comment-start)
         (when (equal comment-start ";")
-        (insert comment-start))
+  (insert comment-start))
         (insert " ")
         (dotimes (_ space-on-each-side) (insert comment-char))
         (when (> comment-length 0) (insert " "))
@@ -958,7 +941,6 @@ If you experience stuttering, increase this.")
           (insert comment-char))))))
 
 (global-set-key (kbd "C-c ;") 'comment-pretty)
-
 
 ;; ─────────────────────────────────── CURSOR ──────────────────────────────────
 (set-mouse-color "white")
@@ -1044,14 +1026,9 @@ point reaches the beginning or end of the buffer, stop there."
 ;;		Highlight Current LINE
 ;;________________________________________________________________
 (when window-system (global-hl-line-mode 1))
-;; (set-face-background 'highlight "#3e4446")	; you canalso try: "#3e4446" or "#gray6" etc.
+;; (set-face-background 'highlight "#3e4446") ; also try: "#3e4446"/"#gray6"
 ;; (set-face-foreground 'highlight nil)
 ;; (set-face-underline-p 'highlight "#ff0000")
-
-;; (when window-system (vline-global-mode 1))
-;; (set-face-background 'vline "#3e4446")	; you canalso try: "#ff0000" or "#gray6" or etc.
-;; (set-face-foreground 'vline nil)
-;; (setq vline-style 'mixed)
 
 ;;________________________________________________________________
 ;;    Transparent Emacs
@@ -1305,8 +1282,7 @@ point reaches the beginning or end of the buffer, stop there."
 
 (use-package aggressive-indent
   :doc "Intended Indentation"
-  :init
-  (add-hook 'prog-mode-hook #'aggressive-indent-mode)
+  :init (add-hook 'prog-mode-hook #'aggressive-indent-mode)
   :delight)
 
 ;; Opening Files Externally
@@ -1322,9 +1298,8 @@ point reaches the beginning or end of the buffer, stop there."
                '(file))
          (list (openwith-make-extension-regexp
                 '("xbm" "pbm" "pgm" "ppm" "pnm"
-                  "png" "gif" "bmp" "tif" "jpeg")) ;; Removed jpg because Telega was
-               ;; causing feh to be opened...
-               "sxiv"
+                  "png" "gif" "bmp" "tif" "jpeg")) ; Removed jpg because Telega was
+               "sxiv" ; causing feh to be opened...
                '(file))
          (list (openwith-make-extension-regexp
                 '("pdf"))
@@ -1337,10 +1312,12 @@ point reaches the beginning or end of the buffer, stop there."
   (setq beacon-color "#50D050"))
 
 (use-package emojify
-  :if (display-graphic-p)
-  :hook (after-init . global-emojify-mode)
-  :custom
-  (emojify-emoji-styles '(unicode)))
+  :config (if (display-graphic-p)
+              (setq emojify-display-style 'image)
+            (setq emojify-display-style 'unicode)
+            (setq emojify-emoji-styles '(unicode)))
+  :init (global-emojify-mode +1))
+(global-set-key (kbd "M-<f1>") #'emojify-insert-emoji)
 
 (use-package alert
   :commands alert
@@ -1357,6 +1334,7 @@ point reaches the beginning or end of the buffer, stop there."
   (solaire-global-mode +1))
 
 (setq custom-safe-themes t)
+(use-package ef-themes)
 (use-package doom-themes
   :custom-face
   (cursor ((t (:background "BlanchedAlmond"))))
@@ -1613,10 +1591,10 @@ point reaches the beginning or end of the buffer, stop there."
   :config
   (add-hook 'flycheck-mode-hook 'flycheck-popup-tip-mode))
 
-(use-package flycheck-clang-tidy
-  :after flycheck
-  :hook
-  (flycheck-mode . flycheck-clang-tidy-setup))
+;; (use-package flycheck-clang-tidy
+;;   :after flycheck
+;;   :hook
+;;   (flycheck-mode . flycheck-clang-tidy-setup))
 
 ;; syntax highlight of the latest C++ language.
 (use-package modern-cpp-font-lock)
@@ -1798,5 +1776,4 @@ point reaches the beginning or end of the buffer, stop there."
 ;;; init.el ends here
 ;; Local Variables:
 ;; byte-compile-warnings: (not free-vars)
-;; compile-command: "g++ project.cpp && ./a.out"
 ;; End:

@@ -1081,9 +1081,8 @@ point reaches the beginning or end of the buffer, stop there."
 ;; ───────────────────────────────── DASHBOARD ─────────────────────────────────
 ;; A dashboard on startup can clean my mind
 (use-package dashboard
-  :demand t
-  :init
-  (add-hook 'dashboard-mode-hook (lambda () (setq show-trailing-whitespace nil)))
+  :after all-the-icons
+  :init (add-hook 'dashboard-mode-hook (lambda () (setq show-trailing-whitespace nil)))
   :custom
   (dashboard-set-navigator t)
   (dashboard-center-content t)
@@ -1093,6 +1092,7 @@ point reaches the beginning or end of the buffer, stop there."
   (dashboard-banner-logo-title "[Ποσειδον 🔱 εδιτορ]")
   (dashboard-startup-banner (concat user-emacs-directory "logos/emacs_and_pen.png"))
   :config
+  (dashboard-setup-startup-hook)
   (setq dashboard-footer-icon (all-the-icons-octicon "calendar"
                                                      :height 1.1
                                                      :v-adjust -0.05
@@ -1103,7 +1103,7 @@ point reaches the beginning or end of the buffer, stop there."
           ((,(all-the-icons-octicon "octoface" :height 1.1 :v-adjust 0.0)
             "Homepage"
             "Browse homepage"
-            (lambda (&rest _) (browse-url "https://github.com/Likhon-baRoy/emacs")) nil "" " |")
+            (lambda (&rest _) (browse-url "https://github.com/Likhon-baRoy/.emacs.d")) nil "" " |")
            (,(all-the-icons-faicon "refresh" :height 1.1 :v-adjust 0.0)
             "Update"
             "Update Megumacs"
@@ -1142,9 +1142,7 @@ point reaches the beginning or end of the buffer, stop there."
                      (agenda         . 5)
                      (registers      . 5)))
   :custom-face
-  (dashboard-heading ((t (:weight bold)))) ; :foreground "#f1fa8c"
-  :hook
-  (after-init . dashboard-setup-startup-hook))
+  (dashboard-heading ((t (:foreground nil :weight bold))))) ; "#f1fa8c"
 
 (use-package avy
   :bind(("C-'" . 'avy-goto-char)

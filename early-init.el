@@ -7,8 +7,8 @@
 ;; Created: Fri Nov 11 10:15:28 2022 (-0400)
 ;; Version: 0.1
 ;; URL: https://github.com/Likhon-baRoy/.emacs.d
-;; Keywords: Z-MACS .emacs.d init early-init
-;; Compatibility: emacs-version >= 27
+;; Keywords: Emacs .emacs.d init early-init
+;; Compatibility: emacs-version >= 28.2
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

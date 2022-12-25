@@ -1,4 +1,4 @@
-;;; extra.el --- Tweaks for some Additional Function configurations -*- lexical-binding: t -*-
+;;; extra.el --- Tweaks for some Additional Function configurations -*- lexical-binding: t; -*-
 ;;; Created on: 2022 Nov 25
 
 ;; Copyright (C) 2021-2022 Likhon Sapiens <likhonhere007@gmail.com>
@@ -36,9 +36,9 @@
 ;;; Code:
 
 
-;; ──────────────────────────── Reload Emacs `init.el' ───────────────────────────
+;; ──────────────────────────── Reload `init.el' ───────────────────────────
 (defun config-reload ()
-  "Uncle dev created a function to reload Emacs config."
+  "Uncle dev created a function to reload Emacs config.  But this sucks for me!"
   (interactive)
   (load-file (expand-file-name "~/.emacs.d/init.el")))
 
@@ -83,7 +83,7 @@
   (mapc #'disable-theme custom-enabled-themes))
 
 ;; ──────────────────────────── Toggle-Transparency ────────────────────────────
-;; Use the following snippet after you’ve set the alpha value (C-c\C-t).
+;; Use the following snippet after you’ve set the alpha value
 (defun toggle-transparency ()
   "Crave for transparency!"
   (interactive)
@@ -117,10 +117,11 @@
                   ("#+begin_example" . ?)
                   ("#+end_example" . ?)
                   ("#+begin_quote" . ?❝)
-                  ("#+end_quote" . ?―) ; ❟ ❠
+                  ("#+end_quote" . ?❠) ; ❟ ―
                   ("#+header:" . ?)
                   ("#+name:" . ?﮸)
-                  ("#+title:" . "◈")
+                  ("#+title:" . ?◈)
+                  ("#+author:" . ?✒)
                   ("#+results:" . ?)
                   ("#+call:" . ?)
                   (":properties:" . ?)
@@ -149,6 +150,10 @@
 (add-hook 'prog-mode-hook 'add-pretty-lambda)
 (add-hook 'org-mode-hook 'add-pretty-lambda)
 ;; (remove-hook 'web-mode 'add-pretty-lambda)
+
+;; (setq-default prettify-symbols-alist ; I don't know why it's not working?
+;;               '(("#+begin_quote" . "ϰ")
+;;                 ("#+end_quote" . "ϰ")))
 
 ;; ─────────────────── Added functionality (Generic usecases) ──────────────────
 ;; Unfill paragraph
@@ -193,13 +198,13 @@
 
 ;; ─────────────────────────────────── CURSOR ──────────────────────────────────
 (set-mouse-color "white")
-(setq x-stretch-cursor t)		; make cursor the width of the character it is under i.e. full width of a TAB
+(setq x-stretch-cursor t) ; make cursor the width of the character it is under i.e. full width of a TAB
 (defun djcb-set-cursor-according-to-mode ()
   "Change cursor color and type according to some minor modes."
   (cond
    (buffer-read-only
     (set-cursor-color "yellow")
-    (setq cursor-type '(hbar . 3)))
+    (setq cursor-type 'box)) ; '(hbar . 3)
    (overwrite-mode
     (set-cursor-color "red")
     (setq cursor-type 'hollow))

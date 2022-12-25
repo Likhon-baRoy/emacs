@@ -1,4 +1,4 @@
-;;; auto-compilation.el --- Tweaks for company and yasnippet -*- lexical-binding: t -*-
+;;; auto-compilation.el --- settings for company and yasnippet -*- lexical-binding: t; -*-
 ;;; Created on: 25 November 2022
 
 ;; Copyright (C) 2021-2022 Likhon Sapins <likhonhere007@gmail.com>
@@ -110,10 +110,10 @@
                             company-cmake
                             company-yasnippet
                             company-c-headers
-                            ;; company-clang     ; too much slow
+                            company-clang     ; too much slow
                             ;; company-ispell
                             ;; company-irony-c-headers
-                            ;; company-irony
+                            company-irony
                             company-dabbrev-code
                             company-semantic
                             company-gtags
@@ -121,6 +121,7 @@
                             company-rtags
                             company-elisp)
                            (company-abbrev company-dabbrev))))
+;; (setq company-backends (delete 'company-semantic company-backends))
 
 ;; Use TAB key to cycle through suggestions.(`tng' means 'TAB and go')
 ;; (company-tng-configure-default)
@@ -152,6 +153,11 @@
   :after company
   :config
   (company-statistics-mode))
+
+;; Required for proportional font
+(use-package company-posframe
+  :config (company-posframe-mode t)
+  :delight)
 
 (use-package yasnippet
   :after company

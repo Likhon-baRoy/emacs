@@ -1,0 +1,8 @@
+#+TITLE:  BackUp of my GNU Emacs !
+#+AUTHOR: Likhon Barai
+#+EMAIL:  likhonhere007@gmail.com
+#+DATE:   2022 Dec 25
+#+TAGS:   emacs configuration org
+
+* About
+Literally nothing to discuss about here, Cuz it's a *backup* repository for my [[https://github.com/Likhon-baRoy/.emacs.d][GNU Emacs]].

@@ -81,6 +81,11 @@ If you experience stuttering, increase this.")
   (server-start))
 
 ;; ────────────────────────────────── ENCODING ─────────────────────────────────
+;; default to utf-8 for all the things
+(set-charset-priority 'unicode)
+(setq locale-coding-system 'utf-8
+      coding-system-for-read 'utf-8
+      coding-system-for-write 'utf-8)
 (prefer-coding-system 'utf-8)
 (set-language-environment 'utf-8)
 (setq locale-coding-system 'utf-8)
@@ -91,24 +96,26 @@ If you experience stuttering, increase this.")
 (set-clipboard-coding-system 'utf-8)
 (set-locale-environment "en_US.UTF-8")
 (set-buffer-file-coding-system 'utf-8-unix)
+(setq default-process-coding-system '(utf-8-unix . utf-8-unix))
+
 (when window-system (global-prettify-symbols-mode t))
 
 ;; ────────────────────────────── Generic packages ─────────────────────────────
+(require 'package)
 ;; Select the folder to store packages
 ;; Comment / Uncomment to use desired sites
 (setq package-user-dir (expand-file-name "elpa" user-emacs-directory)
       package-archives
       '(("gnu"   . "https://elpa.gnu.org/packages/")
+        ("nongnu" . "https://elpa.nongnu.org/nongnu/")
         ("melpa-stable" . "https://stable.melpa.org/packages/")
         ("melpa" . "https://melpa.org/packages/")
-        ("org" . "https://orgmode.org/elpa/")
-        ;; ("cselpa" . "https://elpa.thecybershadow.net/packages/")
-        ;; ("melpa-cn" . "http://mirrors.cloud.tencent.com/elpa/melpa/")
-        ;; ("gnu-cn"   . "http://mirrors.cloud.tencent.com/elpa/gnu/")
-        ))
+        ("org" . "https://orgmode.org/elpa/"))
+      package-quickstart nil)
+;; ("cselpa" . "https://elpa.thecybershadow.net/packages/")
+;; ("melpa-cn" . "http://mirrors.cloud.tencent.com/elpa/melpa/")
+;; ("gnu-cn"   . "http://mirrors.cloud.tencent.com/elpa/gnu/"))
 
-(require 'cl)
-(require 'package)
 ;; Configure Package Manager
 (unless (bound-and-true-p package--initialized)
   (setq package-enable-at-startup nil) ; To prevent initializing twice
@@ -122,13 +129,15 @@ If you experience stuttering, increase this.")
 ;;
 
 ;; Install use-package if not installed
-(unless (package-installed-p 'use-package)
-  (package-refresh-contents) ; update archives
-  (package-install 'use-package)) ; grab the newest use-package
 (eval-and-compile
-  (require 'use-package)
-  (require 'bind-key)
-  (setq warning-minimum-level :emergency)) ; :error (default is :warning)
+  (unless (and (fboundp 'package-installed-p)
+               (package-installed-p 'use-package))
+    (package-refresh-contents) ; update archives
+    (package-install 'use-package)) ; grab the newest use-package
+  (if init-file-debug
+      (setq use-package-compute-statistics t)
+    (setq use-package-compute-statistics nil))
+  (require 'use-package))
 
 ;;; Configure use-package
 (use-package use-package
@@ -137,7 +146,6 @@ If you experience stuttering, increase this.")
   (use-package-always-defer nil)        ; :defer t by default
   (use-package-always-ensure t)         ; :ensure t by default
   (use-package-expand-minimally t)
-  (use-package-compute-statistics t)
   (use-package-enable-imenu-support t))
 
 ;; ─────────────────── Additional Packages and Configurations ──────────────────
@@ -227,24 +235,63 @@ If you experience stuttering, increase this.")
 ;; Don't ask for confirmation to delete marked buffers
 (setq ibuffer-expert t)
 (setq ibuffer-default-sorting-mode 'recency)
-;; ───────────────────────────────── FLY-SPELL ─────────────────────────────────
+
+;; ──────────────────────────────── Spellcheck ────────────────────────────────
+(use-package ispell
+  :bind ("<f8>" . ispell-word) ; easy spell check
+  :custom
+  (ispell-program-name "hunspell") ; require Hunspell
+  (ispell-dictionary "en_US,en_GB,bn_BD")
+  (ispell-personal-dictionary "~/.emacs.d/.hunspell_personal")
+  :config
+  ;; Configure `LANG`, otherwise ispell.el cannot find a 'default
+  ;; dictionary' even though multiple dictionaries will be configured
+  ;; in next line.
+  (setenv "LANG" "en_US.UTF-8")
+  ;; ispell-set-spellchecker-params has to be called
+  ;; before ispell-hunspell-add-multi-dic will work
+  (ispell-set-spellchecker-params)
+  (ispell-hunspell-add-multi-dic ispell-dictionary)
+  (unless (file-exists-p ispell-personal-dictionary)
+    (write-region "" nil ispell-personal-dictionary nil 0)))
+
 (use-package flyspell
   :bind (:map flyspell-mode-map
               ("C-;"        . nil)
               ("C-,"        . nil)
               ("C-."        . nil)
-              ("M-<f7>" . flyspell-buffer) ; S-<f1> or C-M-S-<f1>
-              ("<f7>" . flyspell-word)
-              ("C-<f7>" . flyspell-auto-correct-word)
-              ("C-<f12>" . flyspell-auto-correct-previous-word))
+              ("S-<f8>"     . flyspell-buffer) ; C-M-S-<f1>
+              ("C-<f7>"     . flyspell-auto-correct-word)
+              ("C-<f12>"    . flyspell-auto-correct-previous-word))
   :init (progn (dolist (hook '(org-mode-hook text-mode-hook message-mode-hook))
                  (add-hook hook 'turn-on-flyspell))
                (add-hook 'prog-mode-hook 'flyspell-prog-mode))
-  :config
-  (setq ispell-program-name "hunspell" ; Requires Hunspell
-        ispell-default-dictionary "en_GB")
   :delight " ⓢ")
-;; ────────────────────────────────── WEB-MODE ─────────────────────────────────
+
+;; (defun flyspell-check-next-highlighted-word ()
+;;   "Custom function to spell check next highlighted word."
+;;   (interactive)
+;;   (flyspell-goto-next-error)
+;;   (ispell-word))
+
+;; (global-set-key (kbd "M-<f8>") 'flyspell-check-next-highlighted-word)
+
+;; (eval-after-load "flyspell"
+;;   '(progn
+;;      (defun flyspell-goto-next-and-popup ( )
+;;        "Goto the next spelling error, popup menu, and stop when the end of buffer is reached."
+;;        (interactive)
+;;        (while (< (point) (point-max))
+;;          (flyspell-goto-next-error)
+;;          (redisplay)
+;;          (flyspell-correct-word-before-point))
+;;        (message "No more spelling errors in buffer.")
+;;        )
+;;      ))
+;; (global-set-key (kbd "C-<f8>") 'flyspell-goto-next-and-popup)
+;; (define-key flyspell-mode-map (kbd "C-<f8>") 'flyspell-goto-next-and-popup)
+
+;; ───────────────────────────────── Web-mode ─────────────────────────────────
 (use-package emmet-mode
   :after (web-mode css-mode scss-mode)
   :commands (emmet-mode emmet-expand-line yas-insert-snippet company-complete)
@@ -336,6 +383,7 @@ If you experience stuttering, increase this.")
  backup-by-copying t                ; don't clobber symlinks.
  backup-directory-alist `(("."~/.emacs.d/var/backup/per-session))
  default-directory "~/"
+ custom-safe-themes t
  load-prefer-newer t ; don't use the compiled code if its the older package.
  make-backup-files t               ; backup of a file the first time it is saved.
  delete-by-moving-to-trash t       ; move deleted files to trash.
@@ -355,6 +403,7 @@ If you experience stuttering, increase this.")
  require-final-newline t
  x-select-enable-clipboard t       ; Makes killing/yanking interact with the clipboard.
  save-interprogram-paste-before-kill t ; Save clipboard strings into kill ring before replacing them.
+ global-auto-revert-non-file-buffers t
  apropos-do-all t                  ; Shows all options when running apropos.
  mouse-yank-at-point t             ; Mouse yank commands yank at point instead of at click.
  message-log-max 1000
@@ -363,22 +412,23 @@ If you experience stuttering, increase this.")
  make-pointer-invisible t          ; hide cursor when writing.
  column-number-mode t              ; Show (line,column) in mode-line.
  cua-selection-mode t              ; Delete regions.
+ vc-follow-symlinks t              ; always follow git symlinks
  enable-recursive-minibuffers t    ; allow commands to be run on minibuffers.
+ dired-kill-when-opening-new-dired-buffer t   ; delete dired buffer when opening another directory
  backward-delete-char-untabify-method 'hungry ; Alternatives is: 'all (remove all consecutive whitespace characters, even newlines).
  )
 (require 'paren)
-(show-paren-mode 1)         ; Highlight matching parenthesis.
-(setq show-paren-delay 0) ; how long to wait?
+(show-paren-mode 1)            ; Highlight matching parenthesis.
+(setq show-paren-delay 0)      ; how long to wait?
 (setq show-paren-style 'mixed) ; alternatives are 'expression' and 'parenthesis'
 (custom-set-faces
- '(show-paren-match ((t (:background "gray13" :foreground "white" :weight extra-bold))))
+ '(show-paren-match ((t (:background "#3c3836" :foreground "white" :weight extra-bold))))
  '(show-paren-mismatch ((((class color)) (:background "red" :foreground "white"))))
  )
 
-;; space around the windows
+;; Space around the windows
 ;; (set-fringe-style '(8 . 8))
 ;; (fringe-mode '(8 . 0))      ; Enable fringe on the left for git-gutter-fringe+.
-(save-place-mode 1)
 (global-subword-mode 1)     ; Iterate through CamelCase words.
 (global-auto-revert-mode 1) ; Automatically revert buffer when it changes on disk.
 (electric-pair-mode 1)     ; Enable Matching delimiters.
@@ -418,6 +468,13 @@ If you experience stuttering, increase this.")
 ;; show zero-width characters
 (set-face-background 'glyphless-char "red")
 
+;;zone out the display when it goes idle for a given length of tim
+(setq zone-idle-time 300)
+(setq zone-timer (run-with-idle-timer zone-idle-time t 'zone))
+(setq zone-programs [
+		             zone-pgm-drip
+		             zone-pgm-drip-fretfully
+		             ])
 (setq
  debug-on-error init-file-debug     ; Reduce debug output, well, unless we've asked for it.
  jka-compr-verbose init-file-debug
@@ -437,6 +494,7 @@ If you experience stuttering, increase this.")
  mouse-wheel-progressive-speed nil
  hscroll-step 1                     ; Horizontal Scroll.
  hscroll-margin 1
+ help-window-select t               ; select help window when opened
  redisplay-skip-fontification-on-input t
  tab-always-indent 'complete        ; smart tab behavior - indent or complete.
  visible-bell t                     ; Flash the screen on error, don't beep.
@@ -475,13 +533,6 @@ If you experience stuttering, increase this.")
       user-login-name      "likhon"
       user-real-login-name "raxit"
       user-mail-address    "likhonhere007@gmail.com")
-;;________________________________________________________________
-;;		Highlight Current LINE
-;;________________________________________________________________
-(when window-system (global-hl-line-mode 1))
-;; (set-face-background 'highlight "#3e4446") ; also try: "#3e4446"/"#gray6"
-;; (set-face-foreground 'highlight nil)
-;; (set-face-underline-p 'highlight "#ff0000")
 
 ;; ────────────────────────── Transparency Alpha Value ─────────────────────────
 (set-frame-parameter (selected-frame) 'alpha '(85 . 50))
@@ -520,6 +571,66 @@ If you experience stuttering, increase this.")
   ;; To disable collection of benchmark data after init is done.
   (add-hook 'after-init-hook 'benchmark-init/deactivate))
 
+;; From: https://panadestein.github.io/emacsd/#org5278580
+(use-package emacs
+  :preface
+  (defun my-reload-emacs ()
+    "Reload the Emacs configuration"
+    (interactive)
+    (load-file "~/.emacs.d/init.el"))
+  (defun revert-buffer-no-confirm ()
+    "Revert buffer without confirmation."
+    (interactive) (revert-buffer t t))
+  :config
+  (if init-file-debug
+      (setq warning-minimum-level :debug)
+    (setq warning-minimum-level :emergency))
+  (fringe-mode '(0 . 0))
+  ;; Terminal transparency
+  (face-spec-set 'default
+                 '((((type tty)) :background "unspecified-bg")))
+  ;; Remember line number
+  (if (fboundp #'save-place-mode)
+      (save-place-mode +1)
+    (setq-default save-place t))
+  ;; Mimetypes
+  (setq mailcap-user-mime-data
+        '((type . "application/pdf")
+          (viewer . pdf-view-mode)))
+  :bind
+  (("C-c R" . my-reload-emacs))
+  ;;  ("<escape>" . keyboard-escape-quit) ; Make ESC close prompts
+  ;;  ("C-c C-r" . revert-buffer-no-confirm)
+  )
+
+;; Emacs built-in ediff is more powerful than vimdiff IMHO.
+;; However, the default configuration can be improved a bit:
+
+;; (use-package ediff
+;;   :preface
+;;   (defvar my-ediff-original-windows nil)
+;;   (defun my-store-pre-ediff-winconfig ()
+;;     "Stores the window arrangement before opening ediff."
+;;     (setq my-ediff-original-windows (current-window-configuration)))
+;;   (defun my-restore-pre-ediff-winconfig ()
+;;     "Resets original window arrangement"
+;;     (set-window-configuration my-ediff-original-windows))
+;;   :hook
+;;   ((ediff-before-setup . my-store-pre-ediff-winconfig)
+;;    (ediff-quit . my-restore-pre-ediff-winconfig))
+;;   :config
+;;   (setq ediff-window-setup-function 'ediff-setup-windows-plain
+;;         ediff-split-window-function 'split-window-horizontally))
+
+(use-package proced
+  :commands proced
+  :bind ("M-<f12>" . 'proced)
+  :config
+  (setq proced-auto-update-interval 1)
+  (add-hook 'proced-mode-hook
+            (lambda ()
+              (proced-toggle-auto-update 1))))
+
 (defun aorst/font-installed-p (font-name)
   "Check if font with FONT-NAME is available."
   (if (find-font (font-spec :name font-name))
@@ -545,6 +656,8 @@ If you experience stuttering, increase this.")
         ("M-g g" . 'avy-goto-line)
         ("M-g e" . 'avy-goto-word-0)
         ("M-g w" . 'avy-goto-word-1)
+        ;; ("M-" . 'avy-copy-line)
+        ;; ("M-" . 'avy-copy-region)
         ("M-g l" . 'avy-move-line)
         ("M-g M-r" . 'avy-move-region)
         ("C-c C-j" . 'avy-resume))
@@ -624,11 +737,24 @@ If you experience stuttering, increase this.")
   (counsel-describe-function-function #'helpful-callable)
   (counsel-describe-variable-function #'helpful-variable)
   :bind
+  ("<f1> f" . helpful-function)
   ([remap describe-key]      . helpful-key)
   ([remap describe-symbol]   . helpful-symbol)
   ([remap describe-command]  . helpful-command)
   ([remap describe-variable] . helpful-variable)
   ([remap describe-function] . helpful-callable))
+
+(use-package eyebrowse
+  :config (progn
+            (define-key eyebrowse-mode-map (kbd "M-0") 'eyebrowse-switch-to-window-config-0)
+            (define-key eyebrowse-mode-map (kbd "M-1") 'eyebrowse-switch-to-window-config-1)
+            (define-key eyebrowse-mode-map (kbd "M-2") 'eyebrowse-switch-to-window-config-2)
+            (define-key eyebrowse-mode-map (kbd "M-3") 'eyebrowse-switch-to-window-config-3)
+            (define-key eyebrowse-mode-map (kbd "M-4") 'eyebrowse-switch-to-window-config-4)
+            (define-key eyebrowse-mode-map (kbd "M-5") 'eyebrowse-switch-to-window-config-5)
+            (eyebrowse-mode t)
+            (setq eyebrowse-wrap-around t)
+            (setq eyebrowse-new-workspace t)))
 
 (use-package ace-window
   :bind ("M-o" . ace-window)
@@ -687,6 +813,12 @@ If you experience stuttering, increase this.")
      "*Ibuffer*"
      "*esh command on file*")))
 
+(use-package drag-stuff
+  :hook ((prog-mode org-mode) . drag-stuff-mode )
+  :bind
+  ("C-M-j" . drag-stuff-down)
+  ("C-M-k" . drag-stuff-up))
+
 (use-package aggressive-indent
   :defer t
   :doc "Intended Indentation"
@@ -701,12 +833,12 @@ If you experience stuttering, increase this.")
   :delight
   :commands highlight-indent-guides-mode
   :custom
-  ;; (highlight-indent-guides-auto-enabled t)
+  (highlight-indent-guides-delay 0)
   (highlight-indent-guides-responsive t)
   (highlight-indent-guides-method 'character)
-  ;; (highlight-indent-guides-character ?\┊) ; |
-  :hook
-  (prog-mode  . highlight-indent-guides-mode)
+  ;; (highlight-indent-guides-auto-enabled t)
+  ;; (highlight-indent-guides-character ?\┆) ;; Indent character samples: | ┆ ┊
+  :hook (prog-mode  . highlight-indent-guides-mode)
   ) ; end indent-guides
 
 ;; Highlight Volatile Things ?
@@ -719,6 +851,17 @@ If you experience stuttering, increase this.")
 ;; (vhl/default-face ((nil (:foreground "#FF3333" :background "#FFCDCD")))))
                                         ;end volatile highlites
 
+;; (set-face-background 'highlight "#3e4446") ; also try: "#3e4446"/"#gray6"
+;; (set-face-foreground 'highlight nil)
+;; (set-face-underline-p 'highlight "#ff0000")
+
+(when window-system
+  (use-package hl-line
+    :hook ((prog-mode text-mode) . hl-line-mode)))
+
+(use-package highlight-numbers
+  :hook (prog-mode . highlight-numbers-mode))
+
 (use-package beacon
   :commands beacon-mode
   :init (beacon-mode t)
@@ -729,8 +872,8 @@ If you experience stuttering, increase this.")
    beacon-blink-when-point-moves nil
    beacon-dont-blink-commands nil
    beacon-blink-when-focused t
-   beacon-blink-duration .2
-   beacon-blink-delay .2
+   beacon-blink-duration .5
+   beacon-blink-delay .5
    beacon-push-mark 1
    beacon-color "#50D050"
    beacon-size 20)
@@ -748,6 +891,9 @@ If you experience stuttering, increase this.")
   :config (setq alert-default-style 'notifications)
   :delight)
 
+(use-package rainbow-mode
+  :hook (prog-mode . rainbow-mode))
+
 (use-package rainbow-delimiters
   :config (add-hook 'prog-mode-hook #'rainbow-delimiters-mode)
   :delight)
@@ -757,7 +903,6 @@ If you experience stuttering, increase this.")
   :config (solaire-global-mode +1)
   :delight)
 
-(setq custom-safe-themes t)
 (use-package doom-themes
   :if window-system
   :custom-face
@@ -778,40 +923,35 @@ If you experience stuttering, increase this.")
         ))
   ;; Corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
-;; ───────────────────────────────── MODE-LINE ─────────────────────────────────
+;; ──────────────────────────────── MODE-LINE ─────────────────────────────────
 (size-indication-mode)
 ;; (display-battery-mode)
-;; (display-time-mode)
 ;; (setq display-time-24hr-format t)
-;; (setq display-time-format "%l:%M %p %b %y"
-;;       display-time-default-load-average nil)
+(setq display-time-format "%l:%M%p" ;  %b %y"
+      display-time-default-load-average nil)
+(display-time-mode)
 ;; (setq display-time-format "%l:%M%P (%a) %e %b ♪") ; %D for date format
 
-;; ─────────────────────────────────── Fonts ───────────────────────────────────
+;; ────────────────────────────────── Fonts ───────────────────────────────────
 (global-font-lock-mode 1)               ; Use font-lock everywhere.
 (setq font-lock-maximum-decoration t)   ; We have CPU to spare; highlight all syntax categories.
 
-;; (set-face-attribute 'default nil
-;; 		            :font "Fantasque Sans Mono"
-;; 		            :weight 'light
-;; 		            :height (cond ((string-equal system-type "gnu/linux") 110)
-;; 				                  ((string-equal system-type "darwin") 130)))
-
-;; (set-face-attribute 'font-lock-comment-face nil :family "Cantarell" :foreground "#5B6268" :slant 'italic :height 92)
-;; (set-face-attribute 'font-lock-function-name-face nil :foreground "#c678dd" :slant 'italic :weight 'medium) ; 'normal
-;; (set-face-attribute 'font-lock-variable-name-face nil :foreground "#dcaeea" :weight 'bold)
-;; (set-face-attribute 'font-lock-keyword-face nil :weight 'bold)
-
-;; (set-frame-font "Comic Mono-10.5" nil t) ; "Monaco-9" "Fantasque Sans Mono-10.5" "Source Code Pro-10" "Fira Code-10"
-
 ;; Set the font face
 (cond ((aorst/font-installed-p "JetBrainsMono")
-       (set-face-attribute 'default nil :font "JetBrainsMono 10"))
+       (set-face-attribute 'default nil :font (font-spec :family "JetBrainsMono" :size 10.0 :weight 'regular))
+       (set-face-attribute 'fixed-pitch nil :font (font-spec :family "JetBrainsMono" :size 10.0 :weight 'regular)))
       ((aorst/font-installed-p "Source Code Pro")
        (set-face-attribute 'default nil :font "Source Code Pro 10")))
 ;; For variable pitched fonts Iosevka Aile is used if available.
 (when (aorst/font-installed-p "Iosevka Aile")
-  (set-face-attribute 'variable-pitch nil :font "Iosevka Aile 10"))
+  (set-face-attribute 'variable-pitch nil :font (font-spec :family "Iosevka Aile" :height 18 :weight 'regular)))
+
+(set-face-attribute 'font-lock-comment-face nil :family "Iosevka Aile Oblique" :height 106) ; :foreground "#5B6268"
+(set-face-attribute 'font-lock-function-name-face nil :family "Iosevka Aile" :height 102 :slant 'italic :weight 'regular) ; 'medium
+;; (set-face-attribute 'font-lock-variable-name-face nil :foreground "#dcaeea" :weight 'bold)
+(set-face-attribute 'font-lock-keyword-face nil :weight 'bold)
+
+;; (set-frame-font "Comic Mono-10.5" nil t) ; "Monaco-9" "Fantasque Sans Mono-10.5" "Source Code Pro-10" "Fira Code-10"
 
 (use-package ligature
   ;; :load-path "path-to-ligature-repo"
@@ -835,9 +975,9 @@ If you experience stuttering, increase this.")
                                        "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
                                        "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"
                                        "\\\\" "://"))
-  ;; Enables ligature checks globally in all buffers. You can also do it
-  ;; per mode with `ligature-mode'.
-  (global-ligature-mode t))
+                                       ;; Enables ligature checks globally in all buffers. You can also do it
+                                       ;; per mode with `ligature-mode'.
+                                       (global-ligature-mode t))
 
 (when (aorst/font-installed-p "JetBrainsMono")
   (dolist (char/ligature-re
@@ -873,6 +1013,36 @@ If you experience stuttering, increase this.")
            char/ligature-re)))
 
 ;; (use-package smartparens
+;;   :init      (progn
+;;                (require 'smartparens)
+;;                (load-library "smartparens-config"))
+
+;;   :config   (progn
+;;               (smartparens-global-mode t)
+;;               (sp-local-pair 'emacs-lisp-mode "`" nil :when '(sp-in-string-p))
+;;               (sp-with-modes '(html-mode sgml-mode nxml-mode web-mode)
+;;                              (sp-local-pair "<" ">")))
+;;   :bind
+;;   (("C-M-k" . sp-kill-sexp-with-a-twist-of-lime)
+;;    ("C-M-f" . sp-forward-sexp)
+;;    ("C-M-b" . sp-backward-sexp)
+;;    ("C-M-n" . sp-up-sexp)
+;;    ("C-M-d" . sp-down-sexp)
+;;    ("C-M-u" . sp-backward-up-sexp)
+;;    ("C-M-p" . sp-backward-down-sexp)
+;;    ("C-M-w" . sp-copy-sexp)
+;;    ("M-s" . sp-splice-sexp)
+;;    ("M-r" . sp-splice-sexp-killing-around)
+;;    ("C-)" . sp-forward-slurp-sexp)
+;;    ("C-}" . sp-forward-barf-sexp)
+;;    ("C-(" . sp-backward-slurp-sexp)
+;;    ("C-{" . sp-backward-barf-sexp)
+;;    ("M-S" . sp-split-sexp)
+;;    ("M-J" . sp-join-sexp)
+;;    ("C-M-t" . sp-transpose-sexp))
+;;   :delight " ⎎")
+
+;; (use-package smartparens
 ;;   :init
 ;;   (bind-key "C-M-f" #'sp-forward-sexp smartparens-mode-map)
 ;;   (bind-key "C-M-b" #'sp-backward-sexp smartparens-mode-map)
@@ -884,35 +1054,27 @@ If you experience stuttering, increase this.")
 ;;   (bind-key "C-M-<backspace>" #'backward-kill-sexp)
 ;;   (bind-key "C-M-S-<SPC>" (lambda () (interactive) (mark-sexp -1)))
 
-;;   :config
-;;   (smartparens-global-mode t)
-
+;;   :config (smartparens-global-mode t)
 ;;   (sp-pair "'" nil :actions :rem)
 ;;   (sp-pair "`" nil :actions :rem)
 ;;   (setq sp-highlight-pair-overlay nil))
 
 ;; (use-package smartparens
-;;   :diminish smartparens-mode ;; Do not show in modeline
-;;   :init
-;;   (require 'smartparens-config)
+;;   :init (require 'smartparens-config)
 ;;   :config
-;;   (smartparens-global-mode t) ;; These options can be t or nil.
+;;   (smartparens-global-mode t) ; these options can be t or nil.
 ;;   (show-smartparens-global-mode t)
 ;;   (setq sp-show-pair-from-inside t)
 ;;   :custom-face
 ;;   (sp-show-pair-match-face ((t (:foreground "White")))) ;; Could also have :background "Grey" for example.
 ;;   )
 
-;; (use-package smartparens-mode
-;;   :ensure smartparens
-;;   :hook (prog-mode text-mode markdown-mode)
-;;   :init
-;;   (require 'smartparens-config)
-;;   )
-
 (use-package minions
+  :delight " 𝛁"
   :hook (doom-modeline-mode . minions-mode)
-  :delight " 𝛁")
+  :config
+  (minions-mode 1)
+  (setq minions-mode-line-lighter "[+]"))
 
 (use-package doom-modeline
   :after all-the-icons
@@ -923,12 +1085,16 @@ If you experience stuttering, increase this.")
   (doom-modeline-major-mode-icon t)
   (doom-modeline-major-mode-color-icon t)
   (doom-modeline-icon (display-graphic-p))
-  (doom-modeline-buffer-modification-icon t)
-  (doom-modeline-flycheck-icon t)
   (doom-modeline-checker-simple-format t)
+  (doom-line-numbers-style 'relative)
+  (doom-modeline-buffer-file-name-style 'relative-to-project)
+  (doom-modeline-buffer-modification-icon t)
   (doom-modeline-buffer-encoding nil)
+  (doom-modeline-buffer-state-icon t)
+  (doom-modeline-flycheck-icon t)
   (doom-modeline-height 35))
 ;; (set-face-background 'mode-line nil)
+
 ;; ────────────────────────────────── IVY ─────────────────────────────────
 (use-package ivy
   :doc "A generic completion mechanism"
@@ -1025,9 +1191,9 @@ If you experience stuttering, increase this.")
   (ivy-posframe-height     10)
   (ivy-posframe-min-height 10)
   :config
-  (when (member "Hasklig" (font-family-list))
+  (when (member "Iosevka Aile" (font-family-list))
     (setq ivy-posframe-parameters
-          '((font . "Hasklig"))))
+          '((font . "Iosevka Aile"))))
   (setq ivy-posframe-display-functions-alist
         '((complete-symbol . ivy-posframe-display-at-point)
           (swiper . ivy-display-function-fallback)
@@ -1052,16 +1218,13 @@ If you experience stuttering, increase this.")
   :config (ivy-prescient-mode t)
   :delight)
 
-;; (use-package swiper
-;;   :defer t
-;;   :doc "A better search"
-;;   :bind (("C-s" . swiper-isearch))
-;;   :delight)
+(use-package swiper
+  :defer t
+  :doc "A better search"
+  ;; :bind (("C-s" . swiper-isearch))
+  :delight)
 
 (use-package ivy-avy
-  :after ivy)
-
-(use-package ivy-hydra
   :after ivy)
 
 (use-package ivy-rich
@@ -1100,7 +1263,7 @@ If you experience stuttering, increase this.")
 (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
 
 (use-package expand-region
-  :bind (("C-@" . er/expand-region)
+  :bind (("C-S-SPC" . er/expand-region)
          ("C--" . er/contract-region)
          ("C-(" . er/mark-outside-pairs)
          ("C-)" . er/mark-inside-pairs)))
@@ -1163,7 +1326,7 @@ If you experience stuttering, increase this.")
          (mu4e-compose-mode . olivetti-mode))
   :custom
   (olivetti-body-width 80)
-  :delight " ⊛") ; "Ⓐ" "⊗"
+  :delight " ⊗") ; Ⓐ ⊛
 
 (use-package fancy-battery
   :config
@@ -1216,7 +1379,7 @@ If you experience stuttering, increase this.")
   (dashboard-set-heading-icons t)
   (dashboard-image-banner-max-height 250)
   (dashboard-banner-logo-title "[Π Ο Σ Ε Ι Δ Ο Ν 🔱 Ε Δ Ι Τ Ο Ρ]") ; [Ποσειδον 🔱 εδιτορ]
-  (dashboard-startup-banner (concat user-emacs-directory "etc/banners/emacs_pen.png"))
+  (dashboard-startup-banner (concat user-emacs-directory "etc/banners/ue-colorful.png"))
   :config
   (dashboard-setup-startup-hook)
   (setq dashboard-footer-icon (all-the-icons-octicon "calendar"
@@ -1263,12 +1426,14 @@ If you experience stuttering, increase this.")
    dashboard-projects-backend 'project-el
    dashboard-projects-switch-function 'counsel-projectile-switch-project-by-name
    dashboard-items '((recents        . 5)
-                     (projects       . 5)
+                     (projects       . 2)
                      (bookmarks      . 5)
-                     (agenda         . 5)
+                     (agenda         . 3)
                      (registers      . 5)))
   :custom-face
   (dashboard-heading ((t (:foreground nil :weight bold))))) ; "#f1fa8c"
+
+(setq eglot-events-buffer-size 0)
 
 (put 'scroll-left 'disabled nil)
 (put 'narrow-to-page 'disabled nil)

@@ -1,4 +1,4 @@
-;;; auto-compilation.el --- settings for company and yasnippet -*- lexical-binding: t; -*-
+;;; auto-compilation.el --- settings for autocompilation -*- lexical-binding: t; -*-
 ;;; Created on: 25 November 2022
 
 ;; Copyright (C) 2021-2022 Likhon Sapins <likhonhere007@gmail.com>
@@ -42,10 +42,14 @@
   :after company
   :hook (company-mode . company-box-mode))
 ;; (set-face-background 'company-box--apply-color "#555555")
+
 (use-package company
+  :defer 2
   :delight " Ⱞ"
   :commands company-mode
-  :hook (prog-mode text-mode)
+  ;; :after prog-mode
+  ;; :hook (prog-mode . company-mode)
+  :hook (after-init . global-company-mode)
   :bind
   (:map company-active-map
         ("C-h"        . nil)
@@ -54,9 +58,7 @@
         ("C-n"        . nil)
         ("C-p"        . nil)
         ("C-w"        . nil)
-        ("RET"        . nil)
-        ("<return>"   . nil)
-        ("SPC"        . nil)    ; Prevent SPC from ever triggering a completion.
+        ("SPC"        . nil) ; prevent SPC from ever triggering a completion.
         ("M-n"        . nil)
         ("M-p"        . nil)
         ("M-."        . company-show-location)
@@ -83,53 +85,80 @@
         ("C-k"        . company-select-previous)
         ("C-s"        . company-filter-candidates)
         ([escape]     . company-search-abort))
-  :init
-  (setq company-idle-delay 0.0
-        company-echo-delay 0
-        completion-ignore-case t
-        company-require-match nil
-        company-show-quick-access t
-        company-selection-wrap-around t
-        company-minimum-prefix-length 1
-        company-dabbrev-code-modes t
-        company-dabbrev-code-everywhere t
-        company-dabbrev-ignore-case nil
-        company-debbrev-other-buffers 'all
-        company-dabbrev-downcase nil
-        company-tooltip-limit 10
-        company-tooltip-align-annotations t
-        company-tooltip-minimum company-tooltip-limit
-        company-begin-commands '(self-insert-command)
-        company-require-match #'company-explicit-action-p
-        company-frontends '(company-pseudo-tooltip-frontend)
-        company-transformers '(company-sort-by-occurrence))
+  :custom
+  (company-dabbrev-ignore-case t)
+  (company-etags-ignore-case t)
+  (company-idle-delay 0.0)
+  (company-echo-delay 0)
+  (completion-ignore-case t)
+  (company-require-match nil)
+  (company-show-quick-access t)
+  (company-selection-wrap-around t)
+  (company-minimum-prefix-length 1)
+  (company-dabbrev-code-modes t)
+  (company-dabbrev-code-everywhere t)
+  (company-dabbrev-ignore-case nil)
+  (company-debbrev-other-buffers 'all)
+  (company-dabbrev-downcase nil)
+  (company-tooltip-limit 10)
+  (company-tooltip-align-annotations t)
+  (company-tooltip-minimum company-tooltip-limit)
+  (company-transformers '(company-sort-by-occurrence))
+  ;; (company-begin-commands '(self-insert-command))
+  ;; (company-require-match #'company-explicit-action-p)
+  ;; (company-frontends '(company-pseudo-tooltip-frontend))
   :config
   (setq company-backends '((company-files        ; files & directory
                             company-keywords     ; keywords
-                            company-capf         ; what is this?
+                            company-capf         ; what is it?
                             company-cmake
-                            company-yasnippet
                             company-c-headers
-                            company-clang     ; too much slow
-                            ;; company-ispell
-                            ;; company-irony-c-headers
+                            company-clang        ; too much slow
+                            company-ispell
+                            company-irony-c-headers
                             company-irony
                             company-dabbrev-code
                             company-semantic
+                            company-yasnippet
                             company-gtags
                             company-etags
                             company-rtags
                             company-elisp)
-                           (company-abbrev company-dabbrev))))
-;; (setq company-backends (delete 'company-semantic company-backends))
-
+                           (company-abbrev company-dabbrev)
+                           (delete 'company-semantic company-backends)))
+  )
 ;; Use TAB key to cycle through suggestions.(`tng' means 'TAB and go')
-;; (company-tng-configure-default)
+;; (company-tng-mode)
 
-(use-package company-rtags
-  :after company)
-(use-package company-c-headers
-  :after company)
+(add-hook 'prog-mode-hook
+          (lambda ()
+            (set (make-local-variable 'company-backends)
+                 '((company-files        ; files & directory
+                    company-keywords     ; keywords
+                    company-capf
+                    company-cmake
+                    company-yasnippet
+                    company-c-headers
+                    company-clang        ; too much slow
+                    company-irony-c-headers
+                    company-irony
+                    company-dabbrev-code
+                    company-semantic
+                    company-gtags
+                    company-etags
+                    company-rtags
+                    company-elisp)))))
+
+(add-hook 'org-mode-hook
+          (lambda ()
+            (set (make-local-variable 'company-backends)
+                 '((company-files        ; files & directory
+                    company-capf
+                    company-yasnippet
+                    company-ispell
+                    company-abbrev
+                    company-dabbrev
+                    company-dabbrev-code)))))
 
 ;; Delete duplicates from company popups
 (setq-local company-transformers '(delete-dups)
@@ -141,6 +170,7 @@
 ;;   (add-hook 'c-mode-hook 'irony-mode)
 ;;   (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
 
+;; Documentation popups for Company
 (use-package company-quickhelp
   :after company
   :config
@@ -160,21 +190,64 @@
   :delight)
 
 (use-package yasnippet
-  :after company
-  :delight yas-minor-mode " ¥" ; "ǂ"
-  :custom (yas-snippet-dirs '("~/.emacs.d/etc/yasnippet/snippets"))
+  :delight yas-minor-mode " ¥"
   :commands yas-reload-all
   :hook ((prog-mode minibuffer-inactive-mode org-mode) . yas-minor-mode)
+  :bind
+  (("C-c y n" . yas-new-snippet)
+   ("C-c y v" . yas-visit-snippet-file)
+   ("C-c y i" . yas-insert-snippet))
+  :custom (yas-snippet-dirs '("~/.emacs.d/etc/yasnippet/snippets"))
   :config
   ;; enalbe nested snippet expansion
   (setq yas-triggers-in-field t)
-  (yas-global-mode))
+  (yas-global-mode)
+  )
 
 (use-package yasnippet-snippets
   :delight
-  :after yasnippet
+  :after yas
   :custom (yasnippet-snippets-dirs '("~/.emacs.d/etc/yasnippet/snippets"))
   :config (yasnippet-snippets-initialize))
+
+(use-package eglot
+  :custom
+  (eglot-autoshutdown t)
+  (eglot-autoreconnect nil)
+  (eglot-confirm-server-initiated-edits nil)
+  (eldoc-idle-delay 0.0)
+  (eldoc-echo-area-display-truncation-message nil)
+  :hook ((c-mode . eglot-ensure)
+         (c++-mode . eglot-ensure))
+  :bind (:map eglot-mode-map
+              ("C-c r"   . eglot-rename)
+              ("C-c C-a" . eglot-code-actions)
+              ("C-c C-f" . eglot-format-buffer)
+              ("C-c C-i" . eglot-find-implementation))
+  :config
+  (add-to-list 'eglot-server-programs '(c-mode . ("clangd")))
+  (add-to-list 'eglot-server-programs '(c++-mode . ("clangd")))
+  (add-to-list 'eglot-server-programs '(python-mode . ("pyls")))
+  (add-to-list 'eglot-server-programs '(LaTeX-mode . ("digestif")))
+  ;; format on save
+  (add-hook 'c-mode-hook '(lambda() (add-hook 'before-save-hook 'eglot-format-buffer nil t)))
+  (add-hook 'c++-mode-hook '(lambda() (add-hook 'before-save-hook 'eglot-format-buffer nil t)))
+  (add-hook 'python-mode-hook '(lambda() (add-hook 'before-save-hook 'eglot-format-buffer nil t))))
+
+(add-hook 'eglot-managed-mode-hook (lambda ()
+                                     (add-to-list 'company-backends
+                                                  '(company-capf :with company-yasnippet))))
+
+;; Use Dabbrev with Corfu!
+;; (use-package dabbrev
+;;   ;; Swap M-/ and C-M-/
+;;   :bind (("M-/" . dabbrev-completion)
+;;          ("C-M-/" . dabbrev-expand))
+;;   ;; Other useful Dabbrev configurations.
+;;   :custom
+;;   (dabbrev-ignored-buffer-regexps '("\\.\\(?:pdf\\|jpe?g\\|png\\)\\'")))
+
+(global-set-key (kbd "TAB") #'company-indent-or-complete-common)
 
 ;;; Finish up
 (provide 'auto-compilation)

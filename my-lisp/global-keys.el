@@ -61,11 +61,11 @@
 (global-unset-key (kbd "C-z")) ; unbind (suspend-frame)
 
 ;; normal undo and redo
-(global-set-key (kbd "C-z") 'undo-only)
+(global-set-key (kbd "C-z")   'undo-only)
 (global-set-key (kbd "C-S-z") 'undo-tree-redo)
 ;; (global-set-key "\M-c" 'toggle-letter-case)
-(global-set-key (kbd "C-`") 'duplicate-current-line)
-(global-set-key (kbd "C-~") 'duplicate-current-word)
+(global-set-key (kbd "C-`")   'duplicate-current-line)
+(global-set-key (kbd "C-~")   'duplicate-current-word)
 (global-set-key (kbd "C-<insert>") 'kill-ring-save-current-line)
 ;; (bind-key "C-z"               'call-last-kbd-macro) ; call-last-kbd-macro frequently used key on a double key sequence (I think original is ^Xe)
 
@@ -255,7 +255,7 @@
 ;; (bind-key "A-m"               'manual-entry)
 
 ;; ;;; Shell
-(bind-key "C-!"               'eshell-here)
+(global-set-key (kbd "C-!")   'eshell-here) ; see this function in `shell.el'
 ;; (bind-key "A-e"               'shell)
 ;; (bind-key "A-;"               'async-shell-command)
 ;; (bind-key "M-!"               'async-shell-command)
@@ -321,8 +321,8 @@
 (bind-key "M-<f1>"            'emojify-insert-emoji)
 
 ;; ;;; Misc
-(bind-key "C-c r"             'config-reload) ; see this function in `extra.el'
-(bind-key "M-<f12>"           'proced)
+(global-set-key (kbd "C-S-o") "\C-a\C-o")
+(global-set-key (kbd "<S-return>") "\C-e\C-m")
 (bind-key "C-c T"             'switch-theme)
 (bind-key "C-c t"             'toggle-transparency)
 (bind-key "C-c ;"             'comment-pretty)

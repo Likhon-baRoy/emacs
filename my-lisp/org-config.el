@@ -40,10 +40,14 @@
 (setq org-latex-inputenc-alist '(("utf8" . "utf8x")))
 
 (use-package org
+  :defer t
   :after org
-  ;; :delight " ⓔ"
+  :delight org-mode "✎"
+  :pin org
   :bind
   (:map org-mode-map
+        ("M-k"    . org-metaup)
+        ("M-j"    . org-metadown)
         ("C-'"    . nil)
         ("<f5>"    . org-cycle-agenda-files))
   :config
@@ -146,6 +150,10 @@
                 (org-level-8 . 1.1)))
   (set-face-attribute (car face) nil :font "Iosevka Aile" :weight 'medium :height (cdr face)))
 
+(use-package toc-org
+  :after org
+  :init (add-hook 'org-mode-hook #'toc-org-enable))
+
 ;; Make sure org-indent face is available
 (require 'org-indent)
 
@@ -179,6 +187,35 @@
 
 ;; This is needed as of Org 9.2
 (require 'org-tempo)
+
+;; (use-package org-roam
+;;   :straight t
+;;   :custom
+;;   (org-roam-directory (file-truename "~/Documents/Arbeit/WIKI"))
+;;   :bind (("C-c n l" . org-roam-buffer-toggle)
+;;          ("C-c n f" . org-roam-node-find)
+;;          ("C-c n g" . org-roam-graph)
+;;          ("C-c n i" . org-roam-node-insert)
+;;          ("C-c n c" . org-roam-capture)
+;;          ("C-c n j" . org-roam-dailies-capture-today))
+;;   :config
+;;   (setq org-roam-node-display-template
+;;         (concat "${title:*} "
+;;                 (propertize "${tags:10}" 'face 'org-tag)))
+;;   (org-roam-db-autosync-mode)
+;;   (require 'org-roam-protocol))
+
+;; (use-package org-roam-ui
+;;   :straight (:host github
+;;                    :repo "org-roam/org-roam-ui"
+;;                    :branch "main"
+;;                    :files ("*.el" "out"))
+;;   :after org-roam
+;;   :config
+;;   (setq org-roam-ui-sync-theme t
+;;         org-roam-ui-follow t
+;;         org-roam-ui-update-on-save t
+;;         org-roam-ui-open-on-start t))
 
 ;; ────────────────────────────── Extra Functions ─────────────────────────────
 (defun org-toggle-emphasis ()

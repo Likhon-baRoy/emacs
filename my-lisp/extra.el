@@ -36,12 +36,6 @@
 ;;; Code:
 
 
-;; ──────────────────────────── Reload `init.el' ───────────────────────────
-(defun config-reload ()
-  "Uncle dev created a function to reload Emacs config.  But this sucks for me!"
-  (interactive)
-  (load-file (expand-file-name "~/.emacs.d/init.el")))
-
 ;; ─────────────────────── Focus on newly created windows ──────────────────────
 
 ;; (switch-to-buffer (other-buffer (current-buffer) t))
@@ -117,11 +111,13 @@
                   ("#+begin_example" . ?)
                   ("#+end_example" . ?)
                   ("#+begin_quote" . ?❝)
-                  ("#+end_quote" . ?❠) ; ❟ ―
+                  ("#+end_quote" . ?❠) ; ❟ ―  
+                  ("#+begin_center" . "ϰ")
+                  ("#+end_center" . "ϰ")
                   ("#+header:" . ?)
                   ("#+name:" . ?﮸)
-                  ("#+title:" . ?◈)
-                  ("#+author:" . ?✒)
+                  ;; ("#+title:" . ?◈)
+                  ;; ("#+author:" . ?✒)
                   ("#+results:" . ?)
                   ("#+call:" . ?)
                   (":properties:" . ?)
@@ -185,34 +181,41 @@
       (progn
         (insert comment-start)
         (when (equal comment-start ";")
-        (insert comment-start))
-                  (insert " ")
-                  (dotimes (_ space-on-each-side) (insert comment-char))
-                  (when (> comment-length 0) (insert " "))
-                  (insert comment)
-                  (when (> comment-length 0) (insert " "))
-                  (dotimes (_ (if (= (% comment-length 2) 0)
-                                  (- space-on-each-side 1)
-                                space-on-each-side))
-                    (insert comment-char))))))
+          (insert comment-start))
+        (insert " ")
+        (dotimes (_ space-on-each-side) (insert comment-char))
+        (when (> comment-length 0) (insert " "))
+        (insert comment)
+        (when (> comment-length 0) (insert " "))
+        (dotimes (_ (if (= (% comment-length 2) 0)
+                        (- space-on-each-side 1)
+                      space-on-each-side))
+          (insert comment-char))))))
 
 ;; ─────────────────────────────────── CURSOR ──────────────────────────────────
 (set-mouse-color "white")
-(setq x-stretch-cursor t) ; make cursor the width of the character it is under i.e. full width of a TAB
+(blink-cursor-mode 1)
+(setq x-stretch-cursor nil) ; make cursor the width of the character it is under i.e. full width of a TAB
+
+(require 'mode-local)
+
 (defun djcb-set-cursor-according-to-mode ()
   "Change cursor color and type according to some minor modes."
   (cond
    (buffer-read-only
     (set-cursor-color "yellow")
-    (setq cursor-type 'box)) ; '(hbar . 3)
+    (setq cursor-type '(hbar . 3)))
    (overwrite-mode
     (set-cursor-color "red")
     (setq cursor-type 'hollow))
    (t
+    (setq cursor-type 'box)
     (set-cursor-color "#ba55d3")
-    (setq cursor-type '(bar . 2)))))
+    (setq-mode-local prog-mode cursor-type 'bar)
+    )
+   ))
 (add-hook 'post-command-hook 'djcb-set-cursor-according-to-mode)
-(blink-cursor-mode 1)
+;; (add-hook 'eshell-mode-hook (lambda () (interactive) (setq-local cursor-type '(hbar . 3))))
 
 ;; ───────────────────────────────── Smart Move ────────────────────────────────
 ;; <https://emacsredux.com/blog/2013/05/22/smarter-navigation-to-the-beginning-of-a-line/>
@@ -258,7 +261,29 @@ point reaches the beginning or end of the buffer, stop there."
 
 ;; (global-set-key (kbd "C-a") #'back-to-indentation/beginning-of-line)
 
-;; ─────────────────────────── Delete current file and buffer ──────────────────────────
+;; ────────────────────────────────── ibuffer ──────────────────────────────────
+;; Use human readable Size column instead of original one
+(eval-after-load 'ibuffer
+  '(progn
+     (define-ibuffer-column size-h
+       (:name "Size" :inline t)
+       (cond
+        ((> (buffer-size) 1000000) (format "%7.1fM" (/ (buffer-size) 1000000.0)))
+        ((> (buffer-size) 100000) (format "%7.0fk" (/ (buffer-size) 1000.0)))
+        ((> (buffer-size) 1000) (format "%7.1fk" (/ (buffer-size) 1000.0)))
+        (t (format "%8d" (buffer-size)))))))
+
+;; modify the default ibuffer-formats
+(setq ibuffer-formats
+      '((mark modified read-only " "
+              (name 18 18 :left :elide)
+              " "
+              (size-h 9 -1 :right)
+              " "
+              (mode 16 16 :left :elide)
+              " "
+              filename-and-process)))
+;; ─────────────────────── Delete current file and buffer ──────────────────────
 ;; based on http://emacsredux.com/blog/2013/04/03/delete-file-and-buffer/
 (defun delete-current-file-and-buffer ()
   "Kill the current buffer and deletes the file it is visiting."
@@ -271,6 +296,7 @@ point reaches the beginning or end of the buffer, stop there."
               (message "Deleted file %s." filename)
               (kill-buffer)))
       (message "Not a file visiting buffer!"))))
+
 ;; ─────────────────────── Open Any File With LineNumber ───────────────────────
 (defadvice find-file (around find-file-line-number
                              (filename &optional wildcards)
@@ -288,6 +314,30 @@ point reaches the beginning or end of the buffer, stop there."
         (goto-char (point-min))
         (forward-line (1- line-number))))))
 
+
+;; ───────────────────────────────── Copy line ─────────────────────────────────
+;; (defun copy-line (arg)
+;;   "Copy lines (as many as prefix argument) in the kill ring.
+;;       Ease of use features:
+;;       - Move to start of next line.
+;;       - Appends the copy on sequential calls.
+;;       - Use newline as last char even on the last line of the buffer.
+;;       - If region is active, copy its lines."
+;;   (interactive "p")
+;;   (let ((beg (line-beginning-position))
+;;         (end (line-end-position arg)))
+;;     (when mark-active
+;;       (if (> (point) (mark))
+;;           (setq beg (save-excursion (goto-char (mark)) (line-beginning-position)))
+;;         (setq end (save-excursion (goto-char (mark)) (line-end-position)))))
+;;     (if (eq last-command 'copy-line)
+;;         (kill-append (buffer-substring beg end) (< end beg))
+;;       (kill-ring-save beg end)))
+;;   (beginning-of-line (or (and arg (1+ arg)) 2))
+;;   (if (and arg (not (= 1 arg))) (message "%d lines copied" arg)))
+
+;; (global-set-key (kbd "C-c C-n") 'rename-file-and-buffer)
+;; (global-set-key (kbd "M-k") 'copy-line)
 
 ;;; Finish up
 (provide 'extra)

@@ -44,12 +44,23 @@
   :after org
   :delight org-mode "✎"
   :pin org
+  :hook ((org-mode . prettify-symbols-mode)
+         (org-mode . visual-line-mode)
+         (org-mode . variable-pitch-mode))
   :bind
   (:map org-mode-map
         ("M-k"    . org-metaup)
         ("M-j"    . org-metadown)
         ("C-'"    . nil)
         ("<f5>"    . org-cycle-agenda-files))
+  :init
+  ;; general settings
+  (when (file-directory-p "~/org")
+    (setq org-directory "~/org"
+          +org-export-directory "~/org/export"
+          org-default-notes-file "~/org/personal/todo.org"
+          org-id-locations-file "~/org/.orgids"
+          ))
   :config
   (org-indent-mode)
   (auto-fill-mode 0)
@@ -106,27 +117,28 @@
 
 ;; ORG-TODO
 (setq org-todo-keywords
-      '((sequence "TODO(t)" "DOING(d!)"  "MAYBE(m)"  "BLOCKED(b@)" "READ(r)" "ARCHIVED(a!)" "INPROGRESS(i)" "WAITING(w)" "NEXT(n)" "REVIEW(r)" "|" "DONE(d)" "CANCELED(c)")))
+      '((sequence "TODO(t)" "DOING(D)" "MAYBE(m)" "READ(r)" "ARCHIVED(a!)" "INPROGRESS(i)" "WAITING(w)" "NEXT(n)" "REVIEW(R)" "|" "HOLD(h)" "DONE(d)" "BLOCKED(b@)" "CANCELED(c)")))
 
 (setq org-todo-keyword-faces
       '(("CANCELED" . (:foreground "red" :weight bold))
         ("DOING"    . (:foreground "salmon" :weight bold))
-        ("REVIEW"   . (:foreground "orange" :weight bold))
+        ("HOLD"     . (:foreground "#cfdf30" :weight bold))
+        ("REVIEW"   . (:foreground "orange" :weight bold)) ; #6ae4b9
         ("TODO"     . (:foreground "HotPink3" :weight bold))
         ("BLOCKED"  . (:foreground "DeepPink" :weight bold))
-        ("DONE"     . (:foreground "SeaGreen3" :weight bold))
+        ("DONE"     . (:foreground "SeaGreen3" :weight bold)) ; #44bc44
         ("READ"     . (:foreground "SteelBlue2" :weight bold))
         ("ARCHIVED" . (:foreground "LightSlateGrey" :weight bold))
         ("MAYBE"    . (:foreground "LightSteelBlue4" :weight bold))
         ("NEXT"     . (:foreground "black" :background "yellow" :weight bold))
         ("WAITING"  . (:foreground "purple" :background "tomato" :weight bold))
-        ("INPROGRESS" . (:foreground "yellow" :weight bold))))
+        ("INPROGRESS" . (:foreground "yellow" :weight bold)))) ; #00d3d0
 
 (use-package org-bullets
   :after org
   :hook (org-mode . org-bullets-mode)
   :custom
-  (org-bullets-bullet-list '("◉" "✿" "✚" "✸" "❀" "○"))) ; "●" "▷" "🞛" "◈"
+  (org-bullets-bullet-list '("◉" "✿" "✚" "✸" "❀" "○"))) ; "●" "▷" "🞛" "◈" "✖"
 
 ;; Replace list hyphen with dot
 (font-lock-add-keywords 'org-mode
@@ -216,6 +228,39 @@
 ;;         org-roam-ui-follow t
 ;;         org-roam-ui-update-on-save t
 ;;         org-roam-ui-open-on-start t))
+
+;; ────────────────────────────── Prettify Symbols ─────────────────────────────
+;; Beautify Org Checkbox Symbol
+(defun ma/org-buffer-setup ()
+  "Something for like document, i guess 😕."
+  (push '("[ ]" . "☐" ) prettify-symbols-alist)
+  (push '("[X]" . "☑" ) prettify-symbols-alist)
+  (push '("[-]" . "❍" ) prettify-symbols-alist)
+  )
+(add-hook 'org-mode-hook #'ma/org-buffer-setup)
+
+(defun my/org-mode/load-prettify-symbols ()
+  "Looking pretty good, so i adopted it."
+  (interactive)
+  (setq prettify-symbols-alist
+        (mapcan (lambda (x) (list x (cons (upcase (car x)) (cdr x))))
+                '(("#+begin_src" . ?)
+                  ("#+end_src" . ?)
+                  ("#+begin_example" . ?)
+                  ("#+end_example" . ?)
+                  ("#+begin_quote" . ?❝)
+                  ("#+end_quote" . ?❠) ; ❟ ―  
+                  ("#+begin_center" . "ϰ")
+                  ("#+end_center" . "ϰ")
+                  ("#+header:" . ?)
+                  ("#+name:" . ?﮸)
+                  ;; ("#+title:" . ?◈)
+                  ;; ("#+author:" . ?✒)
+                  ("#+results:" . ?)
+                  ("#+call:" . ?)
+                  (":properties:" . ?)
+                  (":logbook:" . ?)))))
+(add-hook 'org-mode-hook #'my/org-mode/load-prettify-symbols)
 
 ;; ────────────────────────────── Extra Functions ─────────────────────────────
 (defun org-toggle-emphasis ()

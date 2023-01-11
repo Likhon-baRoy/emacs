@@ -76,7 +76,12 @@
   (interactive)
   (mapc #'disable-theme custom-enabled-themes))
 
-;; ──────────────────────────── Toggle-Transparency ────────────────────────────
+;; ──────────────────────────────── Transparency ───────────────────────────────
+(set-frame-parameter (selected-frame) 'alpha '(85 . 50))
+(add-to-list 'default-frame-alist '(alpha . (85 . 50)))
+;; (set-frame-parameter (selected-frame) 'alpha '(<active> . <inactive>))
+;; (set-frame-parameter (selected-frame) 'alpha <both>)
+
 ;; Use the following snippet after you’ve set the alpha value
 (defun toggle-transparency ()
   "Crave for transparency!"
@@ -92,39 +97,6 @@
          '(85 . 50) '(100 . 100)))))
 
 ;; ────────────────────────────── Prettify Symbols ─────────────────────────────
-;; Beautify Org Checkbox Symbol
-(defun ma/org-buffer-setup ()
-  "Something for like document, i guess 😕."
-  (push '("[ ]" . "☐" ) prettify-symbols-alist)
-  (push '("[X]" . "☑" ) prettify-symbols-alist)
-  (push '("[-]" . "❍" ) prettify-symbols-alist)
-  )
-(add-hook 'org-mode-hook #'ma/org-buffer-setup)
-
-(defun my/org-mode/load-prettify-symbols ()
-  "Looking pretty good, so i adopted it."
-  (interactive)
-  (setq prettify-symbols-alist
-        (mapcan (lambda (x) (list x (cons (upcase (car x)) (cdr x))))
-                '(("#+begin_src" . ?)
-                  ("#+end_src" . ?)
-                  ("#+begin_example" . ?)
-                  ("#+end_example" . ?)
-                  ("#+begin_quote" . ?❝)
-                  ("#+end_quote" . ?❠) ; ❟ ―  
-                  ("#+begin_center" . "ϰ")
-                  ("#+end_center" . "ϰ")
-                  ("#+header:" . ?)
-                  ("#+name:" . ?﮸)
-                  ;; ("#+title:" . ?◈)
-                  ;; ("#+author:" . ?✒)
-                  ("#+results:" . ?)
-                  ("#+call:" . ?)
-                  (":properties:" . ?)
-                  (":logbook:" . ?)))))
-(add-hook 'org-mode-hook #'my/org-mode/load-prettify-symbols)
-
-
 (defun add-pretty-lambda ()
   "Make some word or string show as pretty Unicode symbols.  See `https://unicodelookup.com' for more."
   (setq prettify-symbols-alist
@@ -296,6 +268,38 @@ point reaches the beginning or end of the buffer, stop there."
               (message "Deleted file %s." filename)
               (kill-buffer)))
       (message "Not a file visiting buffer!"))))
+
+;; ─────────────────────────────────── Dired ───────────────────────────────────
+(require 'dired)
+(defun dired-back-to-top ()
+  "Step back 3 lines from the very top."
+  (interactive)
+  (beginning-of-buffer)
+  (dired-next-line 3))
+
+(define-key dired-mode-map
+  (vector 'remap 'beginning-of-buffer) 'dired-back-to-top)
+
+(defun dired-jump-to-bottom ()
+  "Step up 1 line from the end."
+  (interactive)
+  (end-of-buffer)
+  (dired-next-line -1))
+
+(define-key dired-mode-map
+  (vector 'remap 'end-of-buffer) 'dired-jump-to-bottom)
+
+;; ───────────────────────── Show LineNumber Temporary ─────────────────────────
+(global-set-key [remap goto-line] 'goto-line-with-feedback)
+
+(defun goto-line-with-feedback ()
+  "Show line numbers temporarily, while prompting for the line number input."
+  (interactive)
+  (unwind-protect
+      (progn
+        (display-line-numbers-mode 1)
+        (goto-line (read-number "Goto line: ")))
+    (display-line-numbers-mode -1)))
 
 ;; ─────────────────────── Open Any File With LineNumber ───────────────────────
 (defadvice find-file (around find-file-line-number

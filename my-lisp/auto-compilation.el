@@ -112,17 +112,14 @@
                             company-keywords     ; keywords
                             company-capf         ; what is it?
                             company-cmake
-                            company-c-headers
-                            company-clang        ; too much slow
+                            company-clang
                             company-ispell
-                            company-irony-c-headers
-                            company-irony
                             company-dabbrev-code
                             company-semantic
                             company-yasnippet
                             company-gtags
                             company-etags
-                            company-rtags
+                            ;; company-rtags
                             company-elisp)
                            (company-abbrev company-dabbrev)
                            (delete 'company-semantic company-backends)))
@@ -138,15 +135,12 @@
                     company-capf
                     company-cmake
                     company-yasnippet
-                    company-c-headers
-                    company-clang        ; too much slow
-                    company-irony-c-headers
-                    company-irony
+                    company-clang
                     company-dabbrev-code
                     company-semantic
                     company-gtags
                     company-etags
-                    company-rtags
+                    ;; company-rtags
                     company-elisp)))))
 
 (add-hook 'org-mode-hook
@@ -201,8 +195,7 @@
   :config
   ;; enalbe nested snippet expansion
   (setq yas-triggers-in-field t)
-  (yas-global-mode)
-  )
+  (yas-global-mode))
 
 (use-package yasnippet-snippets
   :delight

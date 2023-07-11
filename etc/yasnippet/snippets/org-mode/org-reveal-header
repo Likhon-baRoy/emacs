@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: org-reveal header
-# key: <h2
+# key: /h2
 # condition: (eq 1 (line-number-at-pos))
 # --
 #+TITLE: ${1:Title of slidedeck}

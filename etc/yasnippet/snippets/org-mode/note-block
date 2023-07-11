@@ -1,6 +1,6 @@
 # -*- mode: snippet -*-
 # name: #+begin_notes
-# key: <n
+# key: /n
 # --
 #+begin_notes
 $0

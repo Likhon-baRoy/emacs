@@ -68,7 +68,6 @@
         ("C-<return>" . company-complete-selection)
         ("C-l"        . company-complete-selection)
         ("<tab>"      . company-indent-or-complete-common)
-        ("TAB"        . company-indent-or-complete-common)
         ("C-j"        . company-select-next)
         ("C-k"        . company-select-previous)
         ("C-d"        . company-show-doc-buffer)
@@ -154,9 +153,16 @@
                     company-dabbrev
                     company-dabbrev-code)))))
 
+(require 'company-capf)
+(require 'company-files)
+(require 'company-ispell)
+(delete-dups (push 'company-capf company-backends))
+(delete-dups (push 'company-files company-backends))
+(delete-dups (push 'company-ispell company-backends))
+(delete-dups (push 'company-debbrev company-backends))
 ;; Delete duplicates from company popups
-(setq-local company-transformers '(delete-dups)
-            company-backends '(company-files (:separate company-dabbrev company-ispell)))
+;; (setq-local company-transformers '(delete-dups)
+;;             company-backends '(company-files (:separate company-dabbrev company-ispell)))
 
 ;; (use-package irony
 ;;   :config
@@ -223,9 +229,9 @@
   (add-to-list 'eglot-server-programs '(python-mode . ("pyls")))
   (add-to-list 'eglot-server-programs '(LaTeX-mode . ("digestif")))
   ;; format on save
-  (add-hook 'c-mode-hook '(lambda() (add-hook 'before-save-hook 'eglot-format-buffer nil t)))
-  (add-hook 'c++-mode-hook '(lambda() (add-hook 'before-save-hook 'eglot-format-buffer nil t)))
-  (add-hook 'python-mode-hook '(lambda() (add-hook 'before-save-hook 'eglot-format-buffer nil t))))
+  (add-hook 'c-mode-hook #'(lambda() (add-hook 'before-save-hook 'eglot-format-buffer nil t)))
+  (add-hook 'c++-mode-hook #'(lambda() (add-hook 'before-save-hook 'eglot-format-buffer nil t)))
+  (add-hook 'python-mode-hook #'(lambda() (add-hook 'before-save-hook 'eglot-format-buffer nil t))))
 
 (add-hook 'eglot-managed-mode-hook (lambda ()
                                      (add-to-list 'company-backends

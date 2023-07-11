@@ -45,6 +45,7 @@
   (switch-to-buffer (other-buffer (current-buffer) t)))
 
 (defun split-and-follow-horizontally ()
+  "Split the window horizontally and navigate to the new window."
   (interactive)
   (split-window-below)
   (balance-windows)
@@ -52,6 +53,7 @@
   (switcheroo))
 
 (defun split-and-follow-vertically ()
+  "Split the window vertically and navigate to the new window."
   (interactive)
   (split-window-right)
   (balance-windows)
@@ -59,6 +61,23 @@
   (switcheroo))
 
 ;; ──────────────────────────────── Switch Theme ───────────────────────────────
+;; (defun switch-theme (theme)
+;;   "Disable any currently active themes and load THEME."
+;;   ;; This interactive call is taken from `load-theme'
+;;   (interactive
+;;    (list
+;;     (intern (completing-read "Load custom theme: "
+;;                              (mapc 'symbol-name
+;;                                    (custom-available-themes))))))
+;;   (let ((enabled-themes custom-enabled-themes))
+;;     (mapc #'disable-theme custom-enabled-themes)
+;;     (load-theme theme t)))
+
+;; (defun disable-active-themes ()
+;;   "Disable any currently active themes listed in `custom-enabled-themes'."
+;;   (interactive)
+;;   (mapc #'disable-theme custom-enabled-themes))
+
 (defun switch-theme (theme)
   "Disable any currently active themes and load THEME."
   ;; This interactive call is taken from `load-theme'
@@ -67,14 +86,8 @@
     (intern (completing-read "Load custom theme: "
                              (mapc 'symbol-name
                                    (custom-available-themes))))))
-  (let ((enabled-themes custom-enabled-themes))
-    (mapc #'disable-theme custom-enabled-themes)
-    (load-theme theme t)))
-
-(defun disable-active-themes ()
-  "Disable any currently active themes listed in `custom-enabled-themes'."
-  (interactive)
-  (mapc #'disable-theme custom-enabled-themes))
+  (mapc #'disable-theme custom-enabled-themes)
+  (load-theme theme t))
 
 ;; ──────────────────────────────── Transparency ───────────────────────────────
 (set-frame-parameter (selected-frame) 'alpha '(85 . 50))
@@ -97,31 +110,36 @@
          '(85 . 50) '(100 . 100)))))
 
 ;; ────────────────────────────── Prettify Symbols ─────────────────────────────
-(defun add-pretty-lambda ()
-  "Make some word or string show as pretty Unicode symbols.  See `https://unicodelookup.com' for more."
-  (setq prettify-symbols-alist
-        '(("lambda" . 955)
-          ("delta" . 120517)
-          ("epsilon" . 120518)
-          ("<" . 10216)
-          (">" . 10217)
-          ("[" . 10214)
-          ("]" . 10215)
-          ;; ("!=" . 8800)
-          ("<<" . 10218)
-          (">>" . 10219)
-          ("->" . 8594)
-          ;; ("<=" . 10877)
-          ;; (">=" . 10878)
-          )))
+(add-hook 'prog-mode-hook 'prettify-symbols-mode)
+(add-hook 'org-mode-hook 'prettify-symbols-mode)
+;; (remove-hook 'web-mode 'prettify-symbols-mode)
 
-(add-hook 'prog-mode-hook 'add-pretty-lambda)
-(add-hook 'org-mode-hook 'add-pretty-lambda)
-;; (remove-hook 'web-mode 'add-pretty-lambda)
-
-;; (setq-default prettify-symbols-alist ; I don't know why it's not working?
-;;               '(("#+begin_quote" . "ϰ")
-;;                 ("#+end_quote" . "ϰ")))
+;; Make some word or string show as pretty Unicode symbols.  See `https://unicodelookup.com' for more.
+(setq-default prettify-symbols-alist
+              '(("<-" . ?←)
+                ("->" . ?→)
+                ("->>" . ?↠)
+                ("=>" . ?⇒)
+                ;; ("/=" . ?≠)
+                ;; ("!=" . ?≠)
+                ;; ("==" . ?≡)
+                ;; ("<=" . ?≤)
+                ;; (">=" . ?≥)
+                ("=<<" . (?= (Br . Bl) ?≪))
+                (">>=" . (?≫ (Br . Bl) ?=))
+                ("<=<" . ?↢)
+                (">=>" . ?↣)
+                ("lambda" . 955)
+                ("delta" . 120517)
+                ("epsilon" . 120518)
+                ("<" . 10216)
+                (">" . 10217)
+                ;; ("[" . 10214)
+                ;; ("]" . 10215)
+                ("<<" . 10218)
+                (">>" . 10219)
+                ))
+(setq prettify-symbols-unprettify-at-point 'right-edge)
 
 ;; ─────────────────── Added functionality (Generic usecases) ──────────────────
 ;; Unfill paragraph
@@ -153,16 +171,16 @@
       (progn
         (insert comment-start)
         (when (equal comment-start ";")
-          (insert comment-start))
-        (insert " ")
-        (dotimes (_ space-on-each-side) (insert comment-char))
-        (when (> comment-length 0) (insert " "))
-        (insert comment)
-        (when (> comment-length 0) (insert " "))
-        (dotimes (_ (if (= (% comment-length 2) 0)
-                        (- space-on-each-side 1)
-                      space-on-each-side))
-          (insert comment-char))))))
+(insert comment-start))
+(insert " ")
+(dotimes (_ space-on-each-side) (insert comment-char))
+(when (> comment-length 0) (insert " "))
+(insert comment)
+(when (> comment-length 0) (insert " "))
+(dotimes (_ (if (= (% comment-length 2) 0)
+                (- space-on-each-side 1)
+              space-on-each-side))
+  (insert comment-char))))))
 
 ;; ─────────────────────────────────── CURSOR ──────────────────────────────────
 (set-mouse-color "white")
@@ -255,6 +273,20 @@ point reaches the beginning or end of the buffer, stop there."
               (mode 16 16 :left :elide)
               " "
               filename-and-process)))
+
+
+;; Switching to ibuffer puts the cursor on the most recent buffer
+(defadvice ibuffer
+    (around ibuffer-point-to-most-recent) ()
+    "Open ibuffer with cursor pointed to most recent buffer name.
+   This advice sets the cursor position to the name of the most recently
+   visited buffer when ibuffer is called. This makes it easier to quickly
+   switch back to a recent buffer without having to search for it in the list."
+    (let ((recent-buffer-name (buffer-name)))
+      ad-do-it
+      (ibuffer-jump-to-buffer recent-buffer-name)))
+(ad-activate 'ibuffer)
+
 ;; ─────────────────────── Delete current file and buffer ──────────────────────
 ;; based on http://emacsredux.com/blog/2013/04/03/delete-file-and-buffer/
 (defun delete-current-file-and-buffer ()
@@ -270,11 +302,12 @@ point reaches the beginning or end of the buffer, stop there."
       (message "Not a file visiting buffer!"))))
 
 ;; ─────────────────────────────────── Dired ───────────────────────────────────
+;; http://whattheemacsd.com/
 (require 'dired)
 (defun dired-back-to-top ()
   "Step back 3 lines from the very top."
   (interactive)
-  (beginning-of-buffer)
+  (goto-char (point-min))
   (dired-next-line 3))
 
 (define-key dired-mode-map
@@ -283,11 +316,57 @@ point reaches the beginning or end of the buffer, stop there."
 (defun dired-jump-to-bottom ()
   "Step up 1 line from the end."
   (interactive)
-  (end-of-buffer)
+  (goto-char (point-max))
   (dired-next-line -1))
 
 (define-key dired-mode-map
   (vector 'remap 'end-of-buffer) 'dired-jump-to-bottom)
+
+;;;; move-quickly
+(defun my-next-lines ()
+  "Move to the next 5 lines."
+  (interactive)
+  (forward-line 5))
+
+(defun my-previous-lines ()
+  "Move to the previous 5 lines."
+  (interactive)
+  (forward-line -5))
+
+(defun my-forward-chars ()
+  "Move to the forward 5 chars."
+  (interactive)
+  (forward-char 5))
+
+(defun my-backward-chars ()
+  "Move to the backward 5 chars."
+  (interactive)
+  (forward-char -5))
+
+(define-key global-map (kbd "C-S-n") #'my-next-lines)
+(define-key global-map (kbd "C-S-p") #'my-previous-lines)
+(define-key global-map (kbd "C-S-f") #'my-forward-chars)
+(define-key global-map (kbd "C-S-b") #'my-backward-chars)
+
+;; (global-set-key (kbd "C-S-n")
+;;                 (lambda ()
+;;                   (interactive)
+;;                   (ignore-errors (forward-line 5))))
+
+;; (global-set-key (kbd "C-S-p")
+;;                 (lambda ()
+;;                   (interactive)
+;;                   (ignore-errors (forward-line -5))))
+
+;; (global-set-key (kbd "C-S-f")
+;;                 (lambda ()
+;;                   (interactive)
+;;                   (ignore-errors (forward-char 5))))
+
+;; (global-set-key (kbd "C-S-b")
+;;                 (lambda ()
+;;                   (interactive)
+;;                   (ignore-errors (backward-char 5))))
 
 ;; ───────────────────────── Show LineNumber Temporary ─────────────────────────
 (global-set-key [remap goto-line] 'goto-line-with-feedback)
@@ -298,7 +377,7 @@ point reaches the beginning or end of the buffer, stop there."
   (unwind-protect
       (progn
         (display-line-numbers-mode 1)
-        (goto-line (read-number "Goto line: ")))
+        (forward-line (read-number "Goto line: ")))
     (display-line-numbers-mode -1)))
 
 ;; ─────────────────────── Open Any File With LineNumber ───────────────────────
@@ -317,7 +396,6 @@ point reaches the beginning or end of the buffer, stop there."
         ;; goto-line is for interactive use
         (goto-char (point-min))
         (forward-line (1- line-number))))))
-
 
 ;; ───────────────────────────────── Copy line ─────────────────────────────────
 ;; (defun copy-line (arg)
@@ -340,8 +418,32 @@ point reaches the beginning or end of the buffer, stop there."
 ;;   (beginning-of-line (or (and arg (1+ arg)) 2))
 ;;   (if (and arg (not (= 1 arg))) (message "%d lines copied" arg)))
 
-;; (global-set-key (kbd "C-c C-n") 'rename-file-and-buffer)
 ;; (global-set-key (kbd "M-k") 'copy-line)
+
+;; ────────────────────────────────── flyspell ─────────────────────────────────
+;; (defun flyspell-check-next-highlighted-word ()
+;;   "Custom function to spell check next highlighted word."
+;;   (interactive)
+;;   (flyspell-goto-next-error)
+;;   (ispell-word))
+
+;; (global-set-key (kbd "M-<f8>") 'flyspell-check-next-highlighted-word)
+
+;; (eval-after-load "flyspell"
+;;   '(progn
+;;      (defun flyspell-goto-next-and-popup ( )
+;;        "Goto the next spelling error, popup menu, and stop when the end of buffer is reached."
+;;        (interactive)
+;;        (while (< (point) (point-max))
+;;          (flyspell-goto-next-error)
+;;          (redisplay)
+;;          (flyspell-correct-word-before-point))
+;;        (message "No more spelling errors in buffer.")
+;;        )
+;;      ))
+;; (global-set-key (kbd "C-<f8>") 'flyspell-goto-next-and-popup)
+;; (define-key flyspell-mode-map (kbd "C-<f8>") 'flyspell-goto-next-and-popup)
+
 
 ;;; Finish up
 (provide 'extra)
